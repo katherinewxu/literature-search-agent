@@ -44,139 +44,62 @@ rsync -az \
   kwx04@login.farmshare.stanford.edu:~/literature-search-agent/
 ```
 
-## What is implemented
+## Current state (2026-10-25, commit c29eb5c+)
 
-The repository contains a dependency-free core package with:
+Tests: `PYTHONPATH=src python3.12 -m unittest discover -s tests` -> 30/30 (local
+`python3` is conda 3.10 and cannot import `StrEnum`; use 3.12). Sync with
+`bash farmshare/sync.sh` (stamps `GIT_SHA` so traces record the code version).
 
-- typed paper/review/action models and a Gym-like budgeted environment;
-- leakage filters, explicit action costs, and exposure/read accounting;
-- BM25, optional SPECTER2, scripted snowballing, random, and prompted agents;
-- recall, precision, F1, normalized AURC, censored WSS@95, bootstrap summaries;
-- immutable data manifests, checksummed traces, replay, matrix execution, and CLI;
-- SYNERGY CSV ingestion, OpenAlex enrichment/cache support, and training gates;
-- Slurm scripts, including one-cell-per-array-task execution.
+### Frozen benchmark: `/scratch/users/kwx04/literature-search-agent/data/synergy-v3`
 
-The latest local test result was **23/23 passing**:
+Built by `farmshare/build_synergy_v3.sh` (Slurm job 1894930). 66,361 papers, 8 reviews,
+341 gold, audit `data/synergy-v3-audit.json`: `ok=true`, 0 leakage issues, every gold
+study present and visible; one warning (Bos_2018 has 10 gold < 15). Split 4/2/2:
+train Meijboom, Leenaars, Brouwer, Bos; dev Hall_2011, Donners; test Muthu, Appenzeller-Herzog.
 
-```bash
-cd /Users/katherine/literature-search-agent
-PYTHONPATH=src python3 -m unittest discover -s tests -v
-PYTHONPATH=src python3 -m litsearch matrix \
-  --config configs/fixture_matrix.json --count  # expected: 15
-```
+Decisions baked into v3 (report them in the write-up):
 
-The newest ingestion patch parses `referenced_works` from JSON/Python-list/pipe
-representations, reconstructs reverse citer edges, infers review years, and derives a
-domain. It has been synced to FarmShare. The fixture workflow previously completed on
-FarmShare, and Slurm job `1894720` ran all then-current tests successfully.
+- Reviews: SYNERGY+ renamed `Hall_2012` -> `Hall_2011` and dropped `Jeyaraman_2020`;
+  `Muthu_2020` (spine surgery RCTs, 70 gold) replaces Jeyaraman.
+- Ingestion reads SYNERGY+ source folders (`~/.synergy_dataset_source/synergy-dataset-plus/<key>/
+  labels.csv + works_*.zip`) via `--source synergy-source`. The `synergy_dataset` CSV
+  exporter keeps only open-access works with abstracts and dropped 50-96% of records
+  *including gold* (Hall: 104 -> 4 gold). The CSVs in `synergy/raw/` are therefore NOT used.
+- Abstracts: the source keeps abstracts only for OA works; `data backfill-abstracts`
+  filled 30,774 from the OpenAlex API (cache `cache/openalex`, sha256 URL keys). 18,047
+  still empty (absent in OpenAlex too); per-review empty rates 0.6%-49% in the audit.
+- Episodes are scoped to each review's candidate pool (`Review.candidate_ids`).
+  Citation expansion therefore only reaches in-pool papers (in-pool edge coverage
+  47-87% of candidates, 93-100% of gold).
+- Cutoff = review publication date (no search dates in SYNERGY); this only exposes
+  extra non-gold papers between search and publication.
+- Question = review title (SYNERGY `research_question` is inconsistent).
+- Internal research artifact: do not redistribute works.jsonl (non-OA abstracts).
 
-No git commit exists yet. All project files appear untracked because the repository was
-initialized during this session. Do not discard them. Make the first commit only after
-the real-data build and baseline smoke test are verified.
+### Baselines: `runs/synergy-v3-baselines-r2` (array 1895103, 168/168 completed)
 
-## Real SYNERGY data state
+Config `configs/synergy_v3_baselines.json`. `report.md` + `summary.json` there. Mean
+recall at B=10/20/40: bm25/keyword .21/.32/.44; snowball/hybrid .05/.08/.13;
+snowball/keyword .05/.08/.12; snowball/citation .04/.04/.08; random/hybrid .02/.02/.04.
+`runs/synergy-v3-baselines` (r1) is superseded (old snowball hybrid never searched).
+Replay demo: `demo/meijboom_bm25_b40.html` (from r1 trace).
 
-The remote package was installed with `.[data]`; `pandas>=2.2` was added to
-`pyproject.toml` because `synergy-dataset` did not declare the pandas dependency needed
-by its CSV export.
+Caveat for analysis: inclusion requires exposure, not reading. BM25 includes 10
+papers per 1-cost search (~377 exposed at B=40) while snowball pays 1 per read (~34),
+so the matched paper-exposure analysis is required before headline claims.
 
-Eight reviews are targeted:
+## Next actions
 
-```text
-Appenzeller-Herzog_2019
-Bos_2018
-Brouwer_2019
-Donners_2021
-Hall_2012
-Jeyaraman_2020
-Leenaars_2019
-Meijboom_2021
-```
-
-The first four extended exports exist under:
-
-```text
-/scratch/users/kwx04/literature-search-agent/synergy/raw/
-```
-
-Known sizes at last inspection:
-
-```text
-Appenzeller-Herzog_2019.csv   5,403,716 bytes
-Bos_2018.csv                 29,825,655 bytes
-Brouwer_2019.csv            132,133,413 bytes
-Donners_2021.csv              1,087,218 bytes
-```
-
-The first exporter stopped before writing review metadata. A second export for the
-remaining four reviews was submitted as Slurm job **1894878**. It writes to the separate,
-initially empty directory:
-
-```text
-/scratch/users/kwx04/literature-search-agent/synergy/raw_rest/
-```
-
-and logs to:
-
-```text
-/scratch/users/kwx04/literature-search-agent/logs/synergy-export-1894878.log
-```
-
-The monitoring command was interrupted, so the next agent must check the actual state:
-
-```bash
-ssh -S /tmp/farmshare-litsearch.sock kwx04@login.farmshare.stanford.edu \
-  'sacct -j 1894878 --format=JobID,State,ExitCode,Elapsed,MaxRSS; \
-   task_root=/scratch/users/$USER/literature-search-agent; \
-   tail -n 80 "$task_root/logs/synergy-export-1894878.log" 2>/dev/null || true; \
-   find "$task_root/synergy/raw_rest" -maxdepth 2 -type f -printf "%P %s bytes\\n" | sort'
-```
-
-The exporter refuses a non-empty output directory. That is why `raw_rest` is separate.
-Do not delete or overwrite the four completed CSVs. After job success, copy the four
-new review CSVs into `synergy/raw/`. Preserve the generated
-`raw_rest/metadata/review_metadata.csv` as a separate input/reference rather than
-silently overwriting anything.
-
-## Immediate next actions
-
-1. Check Slurm job `1894878`. If it failed, diagnose its log and resubmit to a new empty
-   output directory. Never erase the successful exports.
-2. Integrate SYNERGY review metadata into `build_from_synergy_csv`. The package exports
-   `metadata/review_metadata.csv`; load rows keyed by `key`, using at least `title`,
-   `eligibility_criteria`, publication year/date, and the review OpenAlex ID where
-   available. Explicit `reviews.json` overrides should win. Add focused tests.
-3. Combine the eight CSV inputs non-destructively and run:
-
-   ```bash
-   task_root=/scratch/users/$USER/literature-search-agent
-   ~/literature-search-agent/.venv/bin/litsearch data build \
-     --source synergy \
-     --input "$task_root/synergy/raw" \
-     --output "$task_root/data/synergy"
-   ~/literature-search-agent/.venv/bin/litsearch data audit \
-     --data "$task_root/data/synergy" > "$task_root/data/audit.json"
-   ```
-
-   If the output already exists, inspect it first and build to a versioned sibling
-   directory instead of overwriting it.
-4. Inspect the audit and data statistics: paper/review/gold counts, missing identifiers,
-   empty abstracts, post-cutoff gold studies, duplicate works, citation edge coverage,
-   and per-review candidate sizes. Fix root causes before baselines.
-5. Add a checked-in real baseline matrix config using the eight reviews, BM25 retrieval,
-   snowball citation/keyword/hybrid, random hybrid, budgets 10/20/40, seed 329, and the
-   exact scratch paths. Exclude prompted models and SPECTER2 from this first CPU matrix.
-6. Run one cell as a smoke test, then launch the matrix array:
-
-   ```bash
-   MAX_PARALLEL=16 bash farmshare/submit_one_week.sh \
-     /scratch/users/$USER/literature-search-agent/<baseline-config>.json
-   ```
-
-7. Monitor with `squeue`/`sacct`, inspect every failed array log, resubmit only failed
-   cells, then aggregate with `litsearch evaluate`.
-8. Only after reproducible CPU baselines exist, add SPECTER2, prompted-agent runs,
-   analysis figures/replay, and finally the gated training decision.
+1. Prompted agents (needs the user's model/API choice and spend cap): frontier model in
+   citation/keyword/hybrid on all 8 reviews, small open model hybrid; cache responses.
+2. Grader feedback ("is the citation graph limiting?"): add an open-graph condition with
+   bounded OpenAlex one-hop enrichment beyond the candidate pool (`data enrich`; must
+   union new neighbors into `candidate_ids` and re-run the audit) and compare.
+3. Matched paper-exposure analysis + recall-vs-cost curves (figures) from traces.
+4. SPECTER2 index (GPU job `farmshare/specter_index.sbatch`) and dense keyword baseline.
+5. Snowball include threshold is untuned (0.16); tune only on train reviews if at all.
+6. Failure analysis, fresh-env test run, README quick start, training gate (>=200 valid
+   trajectories) decision.
 
 ## Known design constraints and pitfalls
 
