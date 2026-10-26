@@ -1,0 +1,23 @@
+{
+  "data_dir": "artifacts/fixture",
+  "output_dir": "runs/fixture-matrix",
+  "reviews": ["fixture_depression"],
+  "budgets": [10, 20, 40],
+  "seed": 329,
+  "agents": [
+    {
+      "name": "retrieval",
+      "label": "bm25",
+      "retriever": "bm25",
+      "modes": ["keyword"]
+    },
+    {
+      "name": "snowball",
+      "modes": ["citation", "keyword", "hybrid"]
+    },
+    {
+      "name": "random",
+      "modes": ["hybrid"]
+    }
+  ]
+}

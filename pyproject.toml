@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "budgeted-litsearch"
+version = "0.1.0"
+description = "Budgeted literature-search agents for systematic-review study recovery"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Katherine Xu" }]
+dependencies = []
+
+[project.optional-dependencies]
+data = ["pandas>=2.2", "pyarrow>=17", "synergy-dataset>=2.2"]
+ml = [
+  "numpy>=2",
+  "torch>=2.4",
+  "transformers>=4.45",
+  "adapters>=1.0",
+  "faiss-cpu>=1.9",
+]
+train = [
+  "accelerate>=1.0",
+  "bitsandbytes>=0.44; platform_system == 'Linux'",
+  "datasets>=3",
+  "peft>=0.13",
+  "trl>=0.12",
+]
+dev = ["pytest>=8", "ruff>=0.7"]
+
+[project.scripts]
+litsearch = "litsearch.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+

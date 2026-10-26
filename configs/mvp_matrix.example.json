@@ -1,0 +1,37 @@
+{
+  "data_dir": "/scratch/users/USER/literature-search-agent/data/synergy-openalex",
+  "output_dir": "/scratch/users/USER/literature-search-agent/runs/mvp",
+  "split": "test",
+  "budgets": [10, 20, 40],
+  "seed": 329,
+  "agents": [
+    {
+      "name": "retrieval",
+      "label": "bm25",
+      "retriever": "bm25",
+      "modes": ["keyword"],
+      "repeats": 1
+    },
+    {
+      "name": "retrieval",
+      "label": "specter2",
+      "retriever": "specter2",
+      "index_path": "/scratch/users/USER/literature-search-agent/index/specter2.faiss",
+      "modes": ["keyword"],
+      "repeats": 1
+    },
+    {
+      "name": "snowball",
+      "modes": ["citation", "keyword", "hybrid"],
+      "include_threshold": 0.16,
+      "repeats": 1
+    },
+    {
+      "name": "prompted",
+      "model": "configured-frontier-model",
+      "modes": ["citation", "keyword", "hybrid"],
+      "repeats": 1
+    }
+  ]
+}
+
