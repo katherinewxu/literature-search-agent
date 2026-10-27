@@ -1,0 +1,28 @@
+{
+  "model": "Qwen/Qwen3-1.7B",
+  "init_adapter": "/scratch/users/kwx04/literature-search-agent/checkpoints/smoke-sft",
+  "data_dir": "/scratch/users/kwx04/literature-search-agent/data/synergy-v3",
+  "audit_report": "/scratch/users/kwx04/literature-search-agent/data/synergy-v3-audit.json",
+  "output_dir": "/scratch/users/kwx04/literature-search-agent/checkpoints/smoke-grpo",
+  "gate_output": "/scratch/users/kwx04/literature-search-agent/checkpoints/smoke-grpo.gate.json",
+  "reviews": [
+    "Meijboom_2021",
+    "Bos_2018"
+  ],
+  "modes": [
+    "hybrid"
+  ],
+  "budgets": [
+    10
+  ],
+  "group_size": 4,
+  "prompts_per_step": 2,
+  "steps": 2,
+  "lambda": 0.1,
+  "kl_beta": 0.02,
+  "temperature": 1.0,
+  "learning_rate": 2e-06,
+  "max_length": 6144,
+  "rollout_workers": 8,
+  "save_rollouts": true
+}

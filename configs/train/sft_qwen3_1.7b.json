@@ -1,0 +1,15 @@
+{
+  "model": "Qwen/Qwen3-1.7B",
+  "trajectories": "/scratch/users/kwx04/literature-search-agent/sft/teacher-haiku-v1.jsonl",
+  "audit_report": "/scratch/users/kwx04/literature-search-agent/data/synergy-ext-train-v2-audit.json",
+  "minimum_trajectories": 200,
+  "output_dir": "/scratch/users/kwx04/literature-search-agent/checkpoints/qwen3-1.7b-sft-v1",
+  "gate_output": "/scratch/users/kwx04/literature-search-agent/checkpoints/qwen3-1.7b-sft-v1.gate.json",
+  "lora_rank": 32,
+  "lora_alpha": 64,
+  "learning_rate": 0.0001,
+  "epochs": 2,
+  "gradient_accumulation_steps": 16,
+  "max_length": 6144,
+  "seed": 329
+}

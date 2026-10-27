@@ -4,17 +4,13 @@
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=48G
-#SBATCH --time=08:00:00
+#SBATCH --time=06:00:00
 #SBATCH --output=/scratch/users/%u/literature-search-agent/logs/%x-%j.out
 
+# LoRA SFT of the small policy on rejection-sampled teacher turns: CONFIG=configs/train/...
 set -euo pipefail
-
-project_dir="$HOME/literature-search-agent"
-scratch_dir="/scratch/users/$USER/literature-search-agent"
-mkdir -p "$scratch_dir/logs" "$scratch_dir/model-cache"
-cd "$project_dir"
-source .venv/bin/activate
-export HF_HOME="$scratch_dir/model-cache/huggingface"
-
-litsearch train-sft --config configs/train_sft.json
-
+: "${CONFIG:?}"
+r=/scratch/users/$USER/literature-search-agent
+cd ~/literature-search-agent
+export HF_HOME="$r/model-cache/huggingface"
+"$r/envs/ml/bin/litsearch" train-sft --config "$CONFIG"

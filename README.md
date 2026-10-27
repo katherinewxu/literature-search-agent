@@ -112,66 +112,76 @@ The common seed retrieval costs one budget unit and appears as step zero in ever
 All metadata exposures and full-abstract reads are logged separately. Papers after the
 review cutoff, the review paper, and works citing the review are filtered before an
 episode starts. Invalid tools, unknown papers, and insufficient budgets produce typed
-errors rather than exceptions.
+errors rather than exceptions. Once the budget is spent the agent may still screen
+(include/exclude, free) what it has already seen; the episode ends on `stop` or on the
+next attempt to spend.
+
+Conditions:
+
+- **closed graph** (`data/synergy-v3`): each review's universe is its SYNERGY screening pool.
+- **open graph** (`data/synergy-v3-open-v2`, `litsearch data open-graph`): the universe also
+  contains up to 5,000 out-of-pool works the visible pool cites (gold-blind ranking),
+  with their own references, so citation chasing can leave the pool and search faces
+  extra distractors. Gold sets are unchanged and the leakage audit is re-run.
+- `index_scope: pool` (all r3 runs) builds a BM25 index per review over its universe.
 
 ## Prompted agents and experiment matrix
 
-The client uses the OpenAI chat-completions wire format but is provider-neutral:
+`litsearch.llm.LLMSearchAgent` makes one model call per *turn*: the model screens the
+unscreened papers it has seen (free) and picks exactly one charged action, replying with
+`{"include": [...], "exclude": [...], "action": {...}}`. Any OpenAI-compatible endpoint
+works (OpenRouter, vLLM). Responses are cached by request hash; an optional shared
+spend ledger enforces a USD cap across concurrent jobs.
 
 ```bash
-export MODEL_API_BASE=https://provider.example/v1
-export MODEL_API_KEY=...
-export MODEL_NAME=frontier-model-version
-litsearch run ... --agent prompted --model "$MODEL_NAME"
+# API models (CPU job): key read from ~/.config/litsearch/openrouter.key, never logged
+sbatch --export=ALL,MATRIX_CONFIG=configs/llm/v3_api.json farmshare/api_matrix.sbatch
+# Local open model (GPU job): vLLM server + matrix in one job
+sbatch --export=ALL,MODEL=Qwen/Qwen3-1.7B,SERVED=qwen3-1.7b,MATRIX_CONFIG=configs/llm/v3_qwen3-1.7b.json \
+  farmshare/llm_matrix.sbatch
+litsearch report --run-dir runs/<dir>                      # recall/precision/AURC tables
+litsearch analyze --data data/synergy-v3 --run-dir runs/<a> --run-dir runs/<b> \
+  --open-data data/synergy-v3-open-v2 --output analysis/<name>
 ```
 
-Credentials are never written to traces. To execute a matrix, copy
-`configs/mvp_matrix.example.json`, set its data/output paths, and run:
-
-```bash
-litsearch matrix --config configs/mvp_matrix.json
-litsearch evaluate --run-dir runs/mvp --output runs/mvp/summary.json
-```
+`analyze` writes `analysis.md`, `analysis.json`, `misses.jsonl` and figures: recall vs.
+cost and vs. papers exposed, search recall (gold ever exposed) vs. selection recall,
+gold reachability from the seeds (closed vs. open graph), per-system action mix
+(strategy), and a classification of every missed gold study.
 
 Each run is separate at B=10, 20, and 40; lower-budget metrics are not truncations of
-a policy that knew it had a larger budget. Summary confidence intervals use a paired
-review-level bootstrap when at least two reviews are present.
+a policy that knew it had a larger budget.
 
-## Dense retrieval and training gate
+## Dense retrieval
 
-Install model support only on a GPU/ML machine:
+`litsearch index --data <store> --output index/specter2-<store>` encodes every paper with
+SPECTER2 (proximity adapter); queries use the ad-hoc query adapter. Retrieval is exact
+inner product over the review's universe. See `configs/synergy_v3_dense_r3.json`.
 
-```bash
-python -m pip install -e '.[ml,train]'
-```
+## Training (SFT -> GRPO)
 
-`Specter2Retriever` loads the official SPECTER2 base plus proximity adapter. QLoRA SFT
-is launched with `litsearch train-sft --config configs/train_sft.example.json`. Training
-refuses to start unless the configured audit passed and the minimum trajectory count is
-present. The GRPO command currently validates the same gate in dry-run mode; interactive
-rollout training remains deliberately disabled until the environment adapter is audited.
+1. Teacher episodes on the 40 disjoint life-science training reviews
+   (`configs/llm/teacher_api.json`, temperature 0.7).
+2. `litsearch collect-sft --run-dir runs/<teacher> --output sft/<name>.jsonl` keeps the
+   best-rewarded half per (mode, budget); reward `r = recall - λ·FP/|S| - c·cost/B`.
+3. `litsearch train-sft --config configs/train/sft_qwen3_1.7b.json` (LoRA; refuses to start
+   unless the audit passed and >= 200 valid teacher episodes exist).
+4. `litsearch train-grpo --config configs/train/grpo_qwen3_1.7b.json` via
+   `farmshare/train_grpo.sbatch`: vLLM serves rollouts with the current LoRA hot-loaded,
+   group-normalized advantages, token-level loss, KL to the SFT policy.
+
+Evaluation uses the 8 v3 reviews (train/dev/test split in `splits.json`) and, for
+cross-field transfer, 24 held-out non-life-science reviews (`data/synergy-ext-transfer-v2`).
 
 ## FarmShare
 
 Use `$HOME` for code and `/scratch/users/$USER/literature-search-agent` for datasets, caches,
-models, and runs. Do not run builds or models on a rice login node.
-
-```bash
-rsync -av --exclude .git ./literature-search-agent/ \
-  "$USER"@dtn.farmshare.stanford.edu:~/literature-search-agent/
-ssh farmshare
-cd ~/literature-search-agent
-module load python/3.11.7
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install -e '.[ml]'
-sbatch farmshare/build_data.sbatch
-sbatch farmshare/eval_matrix.sbatch
-```
-
-The scripts write logs and artifacts beneath `/scratch/users/$USER/literature-search-agent`.
-Inspect live partitions with `sinfo` before submitting GPU work because availability and
-limits can change.
+models, and runs. Do not run builds or models on a login node. `bash farmshare/sync.sh`
+rsyncs code (stamping `GIT_SHA` so traces record the version);
+`sbatch farmshare/setup_ml_env.sbatch` creates `envs/ml` (vLLM/TRL/PEFT) and `envs/emb`
+(SPECTER2). OpenAlex now enforces a per-IP daily budget without an API key: set
+`OPENALEX_API_KEY`, or list uncached URLs with `--list-missing` and fill the cache with
+`litsearch data fetch-urls` from another network.
 
 ## Repository layout
 

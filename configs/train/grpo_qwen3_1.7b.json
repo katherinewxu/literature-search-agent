@@ -1,0 +1,28 @@
+{
+  "model": "Qwen/Qwen3-1.7B",
+  "init_adapter": "/scratch/users/kwx04/literature-search-agent/checkpoints/qwen3-1.7b-sft-v1",
+  "data_dir": "/scratch/users/kwx04/literature-search-agent/data/synergy-ext-train-v2",
+  "audit_report": "/scratch/users/kwx04/literature-search-agent/data/synergy-ext-train-v2-audit.json",
+  "output_dir": "/scratch/users/kwx04/literature-search-agent/checkpoints/qwen3-1.7b-grpo-v1",
+  "gate_output": "/scratch/users/kwx04/literature-search-agent/checkpoints/qwen3-1.7b-grpo-v1.gate.json",
+  "modes": [
+    "citation",
+    "keyword",
+    "hybrid"
+  ],
+  "budgets": [
+    20
+  ],
+  "group_size": 8,
+  "prompts_per_step": 4,
+  "steps": 40,
+  "lambda": 0.1,
+  "cost_weight": 0.0,
+  "kl_beta": 0.02,
+  "temperature": 1.0,
+  "learning_rate": 2e-06,
+  "max_length": 6144,
+  "rollout_workers": 32,
+  "save_rollouts": true,
+  "seed": 329
+}

@@ -1,0 +1,14 @@
+{
+  "model": "Qwen/Qwen3-1.7B",
+  "trajectories": "/scratch/users/kwx04/literature-search-agent/sft/smoke.jsonl",
+  "audit_report": "/scratch/users/kwx04/literature-search-agent/data/synergy-v3-audit.json",
+  "minimum_trajectories": 1,
+  "output_dir": "/scratch/users/kwx04/literature-search-agent/checkpoints/smoke-sft",
+  "gate_output": "/scratch/users/kwx04/literature-search-agent/checkpoints/smoke-sft.gate.json",
+  "lora_rank": 32,
+  "lora_alpha": 64,
+  "learning_rate": 0.0001,
+  "epochs": 1,
+  "gradient_accumulation_steps": 4,
+  "max_length": 6144
+}
