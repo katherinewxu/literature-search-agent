@@ -5,7 +5,7 @@ import json
 import sys
 from pathlib import Path
 
-from .agents import OpenAICompatibleAgent, RandomAgent, RankedRetrievalAgent, SnowballAgent
+from .agents import RandomAgent, RankedRetrievalAgent, SnowballAgent
 from .data import (
     audit_store,
     build_from_synergy_csv,
@@ -18,7 +18,7 @@ from .environment import LiteratureSearchEnv
 from .evaluation import evaluate_runs
 from .models import EpisodeSpec
 from .openalex import OpenAlexClient, backfill_abstracts, enrich_one_hop
-from .retrieval import BM25Retriever, Specter2Retriever
+from .retrieval import BM25Retriever, DenseRetriever, build_specter2_index
 from .runner import run_episode, write_run
 from .store import CorpusStore
 
@@ -41,6 +41,9 @@ def _parser() -> argparse.ArgumentParser:
     )
     build.add_argument("--overrides", type=Path, help="reviews.json with explicit overrides")
     build.add_argument("--output", type=Path, required=True)
+    build.add_argument(
+        "--split", help="assign every review to this one split (e.g. train, transfer)"
+    )
     audit = data_commands.add_parser("audit")
     audit.add_argument("--data", type=Path, required=True)
     enrich = data_commands.add_parser("enrich")
@@ -49,10 +52,23 @@ def _parser() -> argparse.ArgumentParser:
     enrich.add_argument("--cache", type=Path, required=True)
     enrich.add_argument("--email")
     enrich.add_argument("--max-seed-papers", type=int)
+    open_graph = data_commands.add_parser("open-graph", help="add bounded out-of-pool neighbors")
+    open_graph.add_argument("--data", type=Path, required=True)
+    open_graph.add_argument("--output", type=Path, required=True)
+    open_graph.add_argument("--cache", type=Path, required=True)
+    open_graph.add_argument("--list-missing", type=Path, help="offline: write uncached request URLs here and exit")
+    open_graph.add_argument("--allow-partial", action="store_true", help="write output despite failed batches")
+    open_graph.add_argument("--cap-per-review", type=int, default=5000)
+    open_graph.add_argument("--pool-multiple", type=float, default=1.0)
+    fetch = data_commands.add_parser("fetch-urls", help="fill an OpenAlex cache from a URL list")
+    fetch.add_argument("--urls", type=Path, required=True)
+    fetch.add_argument("--cache", type=Path, required=True)
     backfill = data_commands.add_parser("backfill-abstracts")
     backfill.add_argument("--data", type=Path, required=True)
     backfill.add_argument("--output", type=Path, required=True)
     backfill.add_argument("--cache", type=Path, required=True)
+    backfill.add_argument("--list-missing", type=Path, help="offline: write uncached request URLs here and exit")
+    backfill.add_argument("--allow-partial", action="store_true", help="write output despite failed batches")
     backfill.add_argument("--email")
 
     run = commands.add_parser("run")
@@ -66,6 +82,7 @@ def _parser() -> argparse.ArgumentParser:
     run.add_argument("--budget", type=int, choices=(10, 20, 40), default=20)
     run.add_argument("--model", default="configured-model")
     run.add_argument("--seed", type=int, default=0)
+    run.add_argument("--dense-index", type=Path, help="SPECTER2 index prefix (with --retriever specter2)")
     run.add_argument("--output", type=Path, required=True)
 
     evaluate = commands.add_parser("evaluate")
@@ -80,6 +97,13 @@ def _parser() -> argparse.ArgumentParser:
     matrix.add_argument("--config", type=Path, required=True)
     matrix.add_argument("--index", type=int, help="run one zero-based matrix cell")
     matrix.add_argument("--count", action="store_true", help="print the number of matrix cells")
+    matrix.add_argument("--workers", type=int, default=1, help="concurrent episodes (LLM runs)")
+    matrix.add_argument("--shard", help="I/N: run every N-th cell starting at I")
+    matrix.add_argument("--skip-existing", action="store_true")
+
+    index = commands.add_parser("index", help="encode a store with SPECTER2")
+    index.add_argument("--data", type=Path, required=True)
+    index.add_argument("--output", type=Path, required=True, help="prefix; writes .npy and .ids.json")
 
     demo = commands.add_parser("demo")
     demo_commands = demo.add_subparsers(dest="demo_command", required=True)
@@ -91,6 +115,16 @@ def _parser() -> argparse.ArgumentParser:
     train_sft.add_argument("--config", type=Path, required=True)
     train_grpo = commands.add_parser("train-grpo")
     train_grpo.add_argument("--config", type=Path, required=True)
+    collect = commands.add_parser("collect-sft", help="rejection-sample teacher turns for SFT")
+    collect.add_argument("--run-dir", type=Path, action="append", required=True)
+    collect.add_argument("--output", type=Path, required=True)
+    collect.add_argument("--keep-fraction", type=float, default=0.5)
+
+    analyze = commands.add_parser("analyze", help="curves, exposure, reachability, strategy, misses")
+    analyze.add_argument("--data", type=Path, required=True)
+    analyze.add_argument("--run-dir", type=Path, action="append", required=True)
+    analyze.add_argument("--open-data", type=Path, help="open-graph store for reachability")
+    analyze.add_argument("--output", type=Path, required=True)
     return parser
 
 
@@ -101,7 +135,22 @@ def _agent(name: str, model: str, seed: int):
         return SnowballAgent()
     if name == "retrieval":
         return RankedRetrievalAgent()
-    return OpenAICompatibleAgent(model=model)
+    from .llm import LLMSearchAgent, OpenAIChatBackend
+
+    return LLMSearchAgent(OpenAIChatBackend(model), name="prompted")
+
+
+def _stop_on_failures(args, client: OpenAlexClient, stats: dict) -> bool:
+    """Offline listing or failed batches: report and write no (partial) artifact."""
+    if args.list_missing is not None:
+        args.list_missing.parent.mkdir(parents=True, exist_ok=True)
+        args.list_missing.write_text("".join(url + "\n" for url in client.missing), encoding="utf-8")
+        print(json.dumps({"missing_urls": len(client.missing), "written": str(args.list_missing)}))
+        return True
+    if stats.get("failed_batches") and not args.allow_partial:
+        print(json.dumps({"error": "failed batches; output not written", **stats}, default=str))
+        return True
+    return False
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -126,7 +175,10 @@ def main(argv: list[str] | None = None) -> int:
                 )
             if args.output.exists() and any(args.output.iterdir()):
                 raise SystemExit(f"refusing to overwrite non-empty {args.output}")
-            manifest = write_artifacts(store, args.output, args.source, ingestion_report=report)
+            splits = {args.split: sorted(store.reviews)} if args.split else None
+            manifest = write_artifacts(
+                store, args.output, args.source, ingestion_report=report, splits=splits
+            )
             print(json.dumps(manifest, indent=2))
             return 0
         if args.data_command == "enrich":
@@ -138,17 +190,62 @@ def main(argv: list[str] | None = None) -> int:
             )
             print(json.dumps(write_artifacts(enriched, args.output, "openalex-enriched"), indent=2))
             return 0
+        if args.data_command == "fetch-urls":
+            client = OpenAlexClient(args.cache)
+            urls = [line.strip() for line in args.urls.read_text().splitlines() if line.strip()]
+            fetched = 0
+            for url in urls:
+                if not url.startswith(client.base_url + "/"):
+                    raise SystemExit(f"refusing non-OpenAlex URL: {url[:80]}")
+                cached = client.cache_path(url).exists()
+                client.fetch_url(url)
+                fetched += not cached
+            print(json.dumps({"urls": len(urls), "fetched": fetched}))
+            return 0
+        if args.data_command == "open-graph":
+            from .open_graph import build_open_graph
+
+            if args.output.exists() and any(args.output.iterdir()):
+                raise SystemExit(f"refusing to overwrite non-empty {args.output}")
+            client = OpenAlexClient(args.cache, offline=args.list_missing is not None)
+            store, stats = build_open_graph(
+                CorpusStore.load(args.data),
+                client,
+                cap_per_review=args.cap_per_review,
+                pool_multiple=args.pool_multiple,
+            )
+            if _stop_on_failures(args, client, stats):
+                return 3
+            report_path = args.data / "ingestion_report.json"
+            report = json.loads(report_path.read_text()) if report_path.exists() else {}
+            report["open_graph"] = stats
+            split_path = args.data / "splits.json"
+            manifest = write_artifacts(
+                store,
+                args.output,
+                f"open-graph:{args.data}",
+                ingestion_report=report,
+                splits=json.loads(split_path.read_text()) if split_path.exists() else None,
+            )
+            print(json.dumps({"open_graph": stats, "manifest": manifest}, indent=2))
+            return 0
         if args.data_command == "backfill-abstracts":
             if args.output.exists() and any(args.output.iterdir()):
                 raise SystemExit(f"refusing to overwrite non-empty {args.output}")
-            store, stats = backfill_abstracts(
-                CorpusStore.load(args.data), OpenAlexClient(args.cache, email=args.email)
-            )
+            client = OpenAlexClient(args.cache, email=args.email, offline=args.list_missing is not None)
+            store, stats = backfill_abstracts(CorpusStore.load(args.data), client)
+            if _stop_on_failures(args, client, stats):
+                return 3
             report_path = args.data / "ingestion_report.json"
             report = json.loads(report_path.read_text()) if report_path.exists() else {}
             report["abstract_backfill"] = stats
+            split_path = args.data / "splits.json"
             manifest = write_artifacts(
-                store, args.output, f"openalex-abstracts:{args.data}", ingestion_report=report
+                store,
+                args.output,
+                f"openalex-abstracts:{args.data}",
+                ingestion_report=report,
+                splits=json.loads(split_path.read_text()) if split_path.exists() else None,
             )
             print(json.dumps({"backfill": stats, "manifest": manifest}, indent=2))
             return 0
@@ -162,7 +259,7 @@ def main(argv: list[str] | None = None) -> int:
         retriever = (
             BM25Retriever(store.papers.values())
             if args.retriever == "bm25"
-            else Specter2Retriever(store.papers.values())
+            else DenseRetriever(args.dense_index)
         )
         spec = EpisodeSpec(
             review_id=review.id,
@@ -210,13 +307,41 @@ def main(argv: list[str] | None = None) -> int:
             _, _, cells = matrix_cells(args.config)
             print(len(cells))
             return 0
-        outputs = run_matrix(args.config, index=args.index)
+        shard = tuple(int(x) for x in args.shard.split("/")) if args.shard else None
+        outputs = run_matrix(
+            args.config,
+            index=args.index,
+            workers=args.workers,
+            shard=shard,
+            skip_existing=args.skip_existing,
+        )
         print(json.dumps({"completed": len(outputs), "outputs": [str(p) for p in outputs]}, indent=2))
+        return 0
+
+    if args.command == "index":
+        if args.output.with_suffix(".npy").exists():
+            raise SystemExit(f"refusing to overwrite {args.output}.npy")
+        stats = build_specter2_index(CorpusStore.load(args.data).papers.values(), args.output)
+        print(json.dumps(stats, indent=2))
         return 0
 
     if args.command == "demo":
         path = write_html_replay(args.trace, args.output)
         print(path)
+        return 0
+
+    if args.command == "collect-sft":
+        from .rl import collect_sft
+
+        if args.output.exists():
+            raise SystemExit(f"refusing to overwrite {args.output}")
+        print(json.dumps(collect_sft(args.run_dir, args.output, keep_fraction=args.keep_fraction), indent=2))
+        return 0
+
+    if args.command == "analyze":
+        from .analysis_report import write_analysis
+
+        print(write_analysis(args.data, args.run_dir, args.output, open_data=args.open_data))
         return 0
 
     if args.command in {"train-sft", "train-grpo"}:

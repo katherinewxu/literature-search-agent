@@ -428,10 +428,12 @@ def write_artifacts(
     source: str,
     *,
     ingestion_report: dict[str, Any] | None = None,
+    splits: dict[str, list[str]] | None = None,
 ) -> dict[str, Any]:
     output = Path(output)
     store.save(output)
-    splits = deterministic_split(list(store.reviews.values()))
+    if splits is None:
+        splits = deterministic_split(list(store.reviews.values()))
     (output / "splits.json").write_text(json.dumps(splits, indent=2) + "\n", encoding="utf-8")
     hashed = ["works.jsonl", "reviews.jsonl", "splits.json"]
     if ingestion_report is not None:

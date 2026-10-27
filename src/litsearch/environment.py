@@ -52,6 +52,9 @@ class LiteratureSearchEnv:
         self.read_ids: set[str] = set()
         self.frontier: list[str] = []
         self.done = False
+        # Once the budget is spent the agent may still screen (free) what it has seen;
+        # the episode ends on STOP or on the next attempt to spend.
+        self.exhausted = False
         self.action_count = 0
         self.last_result: dict[str, Any] = {"type": "reset", "papers": []}
         self.trace: list[TraceEvent] = []
@@ -75,7 +78,7 @@ class LiteratureSearchEnv:
                 )
             )
         if self.remaining_budget <= 0:
-            self.done = True
+            self.exhausted = True
 
     def _allowed_ids(self) -> set[str]:
         return allowed_ids_for(self.store, self.review)
@@ -110,7 +113,7 @@ class LiteratureSearchEnv:
             self.remaining_budget -= cost
         self.action_count += 1
         if self.remaining_budget <= 0:
-            self.done = True
+            self.exhausted = True
         self._record(action, cost, [], error)
         return StepResult(self.observe(), cost, self.remaining_budget, self.done, error)
 
@@ -143,6 +146,9 @@ class LiteratureSearchEnv:
             return self._error("tool_unavailable", "citation expansion is unavailable", action)
 
         cost = self._prospective_cost(action)
+        if self.exhausted and cost > 0:
+            self.done = True
+            return self._error("budget_exhausted", "budget is spent; only screening remains", action)
         if cost > self.remaining_budget:
             return self._error(
                 "insufficient_budget",
@@ -204,7 +210,7 @@ class LiteratureSearchEnv:
         self.remaining_budget -= cost
         self.action_count += 1
         if self.remaining_budget <= 0:
-            self.done = True
+            self.exhausted = True
         self._record(action, cost, result_ids)
         return StepResult(self.observe(), cost, self.remaining_budget, self.done)
 

@@ -1,0 +1,109 @@
+{
+  "data_dir": "/scratch/users/kwx04/literature-search-agent/data/synergy-v3",
+  "output_dir": "/scratch/users/kwx04/literature-search-agent/runs/synergy-v3-api-r3",
+  "index_scope": "pool",
+  "seed": 329,
+  "agents": [
+    {
+      "name": "llm",
+      "label": "sonnet-5.5",
+      "model": "anthropic/claude-sonnet-5.5",
+      "price_per_mtok": [
+        2.0,
+        10.0
+      ],
+      "temperature": 0.0,
+      "base_url": "https://openrouter.ai/api/v1",
+      "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+      "spend_ledger": "/scratch/users/kwx04/literature-search-agent/spend/openrouter.jsonl",
+      "spend_cap_usd": 150.0,
+      "max_tokens": 800,
+      "modes": [
+        "citation",
+        "keyword",
+        "hybrid"
+      ]
+    },
+    {
+      "name": "llm",
+      "label": "haiku-5.5",
+      "model": "anthropic/claude-haiku-5.5",
+      "price_per_mtok": [
+        0.1,
+        0.5
+      ],
+      "temperature": 0.0,
+      "base_url": "https://openrouter.ai/api/v1",
+      "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+      "spend_ledger": "/scratch/users/kwx04/literature-search-agent/spend/openrouter.jsonl",
+      "spend_cap_usd": 150.0,
+      "max_tokens": 800,
+      "modes": [
+        "citation",
+        "keyword",
+        "hybrid"
+      ]
+    },
+    {
+      "name": "llm",
+      "label": "qwen3-32b",
+      "model": "qwen/qwen3-32b",
+      "price_per_mtok": [
+        0.08,
+        0.28
+      ],
+      "temperature": 0.0,
+      "extra_body": {
+        "reasoning": {
+          "enabled": false
+        }
+      },
+      "base_url": "https://openrouter.ai/api/v1",
+      "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+      "spend_ledger": "/scratch/users/kwx04/literature-search-agent/spend/openrouter.jsonl",
+      "spend_cap_usd": 150.0,
+      "max_tokens": 800,
+      "modes": [
+        "citation",
+        "keyword",
+        "hybrid"
+      ]
+    },
+    {
+      "name": "llm",
+      "label": "opus-5.5",
+      "model": "anthropic/claude-opus-5.5",
+      "price_per_mtok": [
+        4.0,
+        20.0
+      ],
+      "temperature": 0.0,
+      "base_url": "https://openrouter.ai/api/v1",
+      "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+      "spend_ledger": "/scratch/users/kwx04/literature-search-agent/spend/openrouter.jsonl",
+      "spend_cap_usd": 150.0,
+      "max_tokens": 800,
+      "modes": [
+        "hybrid"
+      ],
+      "budgets": [
+        40
+      ]
+    }
+  ],
+  "budgets": [
+    10,
+    20,
+    40
+  ],
+  "reviews": [
+    "Appenzeller-Herzog_2019",
+    "Bos_2018",
+    "Brouwer_2019",
+    "Donners_2021",
+    "Hall_2011",
+    "Leenaars_2019",
+    "Meijboom_2021",
+    "Muthu_2020"
+  ]
+}

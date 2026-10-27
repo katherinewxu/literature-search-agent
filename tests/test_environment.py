@@ -72,6 +72,19 @@ class EnvironmentTests(unittest.TestCase):
         self.assertEqual(result.charged_cost, 1)
         self.assertEqual(result.remaining_budget, 8)
 
+    def test_screening_continues_after_budget_is_spent(self):
+        env = make_env("keyword", budget=2)
+        result = env.step(Action(ActionKind.SEARCH, query="depression relapse", k=10))
+        self.assertEqual(result.remaining_budget, 0)
+        self.assertFalse(result.done)
+        paper_id = result.observation.last_result["papers"][0]["id"]
+        include = env.step(Action(ActionKind.INCLUDE, paper_id=paper_id))
+        self.assertIsNone(include.error)
+        self.assertIn(paper_id, env.included)
+        spend = env.step(Action(ActionKind.SEARCH, query="more", k=10))
+        self.assertEqual(spend.error.code, "budget_exhausted")
+        self.assertTrue(spend.done)
+
 
 if __name__ == "__main__":
     unittest.main()

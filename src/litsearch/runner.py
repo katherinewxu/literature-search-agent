@@ -81,6 +81,8 @@ def run_episode(
         "metrics": metrics.to_dict(),
         "runtime_seconds": time.time() - started,
         "agent_errors": agent_errors,
+        "agent_summary": agent.summary() if hasattr(agent, "summary") else None,
+        "agent_turns": [turn.to_dict() for turn in getattr(agent, "turns", [])],
         "provenance": {
             "git_sha": _git_sha(),
             "python": platform.python_version(),

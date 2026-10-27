@@ -1,0 +1,31 @@
+{
+  "data_dir": "/scratch/users/kwx04/literature-search-agent/data/synergy-v3",
+  "index_scope": "pool",
+  "seed": 329,
+  "output_dir": "/scratch/users/kwx04/literature-search-agent/runs/llm-smoke",
+  "reviews": [
+    "Meijboom_2021",
+    "Donners_2021"
+  ],
+  "budgets": [
+    10
+  ],
+  "agents": [
+    {
+      "name": "llm",
+      "label": "qwen3-1.7b",
+      "model": "qwen3-1.7b",
+      "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+      "extra_body": {
+        "chat_template_kwargs": {
+          "enable_thinking": false
+        }
+      },
+      "temperature": 0.0,
+      "modes": [
+        "hybrid",
+        "citation"
+      ]
+    }
+  ]
+}

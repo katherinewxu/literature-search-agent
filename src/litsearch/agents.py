@@ -1,11 +1,6 @@
 from __future__ import annotations
 
-import json
-import os
 import random
-import re
-import urllib.error
-import urllib.request
 from dataclasses import dataclass, field
 from typing import Protocol
 
@@ -149,83 +144,3 @@ class SnowballAgent:
         if observation.mode in {"keyword", "hybrid"}:
             return self._search(observation)
         return Action(ActionKind.STOP)
-
-
-SYSTEM_PROMPT = """You are searching for every study eligible for a systematic review.
-Choose exactly one tool action. Optimize recall while respecting the charged budget.
-Do not use knowledge of gold labels. Reply with one JSON object and no prose.
-Schema: {"kind":"search|expand_refs|expand_citers|read|include|exclude|stop",
-"query":"...", "paper_id":"W...", "k":10}.
-Only use tools allowed by the episode mode. Search returns at most 10 results;
-citation expansion returns at most 20. Include/exclude/stop are free.
-"""
-
-
-@dataclass
-class OpenAICompatibleAgent:
-    model: str
-    base_url: str = "https://api.openai.com/v1"
-    api_key: str | None = None
-    timeout: int = 60
-    name: str = "prompted"
-
-    def __post_init__(self) -> None:
-        self.api_key = self.api_key or os.environ.get("MODEL_API_KEY") or os.environ.get(
-            "OPENAI_API_KEY"
-        )
-        self.base_url = os.environ.get("MODEL_API_BASE", self.base_url).rstrip("/")
-        self.model = os.environ.get("MODEL_NAME", self.model)
-
-    def _request(self, observation: Observation) -> str:
-        if not self.api_key:
-            raise RuntimeError("set MODEL_API_KEY or OPENAI_API_KEY")
-        payload = {
-            "model": self.model,
-            "temperature": 0,
-            "messages": [
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {
-                    "role": "user",
-                    "content": json.dumps(observation.to_dict(), sort_keys=True),
-                },
-            ],
-        }
-        request = urllib.request.Request(
-            f"{self.base_url}/chat/completions",
-            data=json.dumps(payload).encode(),
-            headers={
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json",
-            },
-            method="POST",
-        )
-        try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as response:
-                result = json.load(response)
-        except urllib.error.HTTPError as exc:
-            detail = exc.read().decode(errors="replace")
-            raise RuntimeError(f"model API returned {exc.code}: {detail[:500]}") from exc
-        return result["choices"][0]["message"]["content"]
-
-    @staticmethod
-    def _parse(content: str) -> Action:
-        content = content.strip()
-        fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", content, re.DOTALL)
-        if fenced:
-            content = fenced.group(1)
-        elif not content.startswith("{"):
-            match = re.search(r"\{.*\}", content, re.DOTALL)
-            if not match:
-                raise ValueError("model response does not contain a JSON object")
-            content = match.group(0)
-        return Action.from_dict(json.loads(content))
-
-    def act(self, observation: Observation) -> Action:
-        first_error: Exception | None = None
-        for _ in range(2):
-            try:
-                return self._parse(self._request(observation))
-            except (ValueError, KeyError, json.JSONDecodeError) as exc:
-                first_error = first_error or exc
-        raise ValueError(f"model emitted two malformed actions: {first_error}")
-
