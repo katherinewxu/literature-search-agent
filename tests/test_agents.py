@@ -35,6 +35,9 @@ class AgentTests(unittest.TestCase):
         turn = parse_turn('Sure.\n```json\n{"action":{"kind":"search","query":"x"}}\n```')
         self.assertEqual(turn["include"], [])
         self.assertEqual(parse_turn('{"action":"stop"}')["action"]["kind"], "stop")
+        trailing = '{"include": [], "action": {"kind": "read", "paper_id": "W2"}}\n```\n\nWait.\n{"action": {"kind": "stop"}}'
+        self.assertEqual(parse_turn(trailing)["action"]["kind"], "read")
+        self.assertEqual(parse_turn('Let me think {about} it. {"action": {"kind": "stop"}}')["action"]["kind"], "stop")
 
     def test_parse_rejects_prose(self):
         with self.assertRaises(ValueError):
@@ -96,6 +99,24 @@ class AgentTests(unittest.TestCase):
         with ThreadPoolExecutor(16) as pool:
             list(pool.map(lambda i: SpendLedger(path, 100.0).add(0.01, "m" * 200, i), range(400)))
         self.assertAlmostEqual(SpendLedger(path, 100.0).total(), 4.0)
+
+    def test_disallowed_tool_is_charged_not_terminal(self):
+        class SearchInCitationMode:
+            model = "x"
+
+            def complete(self, messages, *, temperature, seed):
+                return '{"include": [], "action": {"kind": "search", "query": "q"}}'
+
+        store = fixture_store()
+        review = store.review("fixture_depression")
+        spec = EpisodeSpec(review.id, review.question, review.eligibility_criteria, 4, "citation")
+        run = run_episode(
+            LiteratureSearchEnv(store, BM25Retriever(store.papers.values()), spec), LLMSearchAgent(SearchInCitationMode())
+        )
+        kinds = [row["action"]["kind"] for row in run["trace"]]
+        self.assertNotIn("stop", kinds[:2])
+        self.assertIn("noop", kinds)
+        self.assertGreaterEqual(run["agent_summary"]["disallowed"], 1)
 
     def test_snowball_name(self):
         self.assertEqual(SnowballAgent().name, "snowball")

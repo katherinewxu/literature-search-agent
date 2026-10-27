@@ -79,8 +79,20 @@ def write_analysis(data: Path, run_dirs: list[Path], output: Path, *, open_data:
         [r for r in runs if r["episode"]["budget"] == max(budgets)], store, reach=reach["closed"]
     )
 
+    systems = sorted({analysis.system_key(run) for run in runs})
+    references = [ref for ref in ("bm25/keyword", "snowball/hybrid", "snowball/citation") if ref in systems]
+    comparisons = []
+    for reference in references:
+        for system in systems:
+            if system == reference:
+                continue
+            for budget in budgets:
+                for metric in ("recall", "aurc", "f1"):
+                    row = analysis.paired(runs, system, reference, budget=budget, metric=metric)
+                    if row["n_reviews"]:
+                        comparisons.append(row)
     results = {"curves": curve_sets, "exposure": exposure, "strategy": strategy,
-               "reachability": reach, "misses": misses["summary"]}
+               "reachability": reach, "misses": misses["summary"], "paired": comparisons}
     (output / "analysis.json").write_text(json.dumps(results, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     (output / "misses.jsonl").write_text("".join(json.dumps(r) + "\n" for r in misses["rows"]), encoding="utf-8")
     figures = _figures(output, curve_sets, reach, strategy)
@@ -95,6 +107,17 @@ def write_analysis(data: Path, run_dirs: list[Path], output: Path, *, open_data:
             f"| {system} | {budget[1:]} | {_fmt(row['exposure_recall'])} | {_fmt(row['recall'])} | "
             f"{row['screen_recall'][0]:.3f} | {row['precision'][0]:.3f} | {row['exposed'][0]:.0f} | {row['included'][0]:.0f} |"
         )
+    lines += ["", "## Paired per-review differences (system - reference; 95% bootstrap CI over reviews)", "",
+              "| system | reference | B | Δrecall | Δaurc | Δf1 | wins/losses (recall) |", "|---|---|---|---|---|---|---|"]
+    indexed = {(c["a"], c["b"], c["budget"], c["metric"]): c for c in comparisons}
+    for (a, b, budget, metric), row in sorted(indexed.items()):
+        if metric != "recall":
+            continue
+        cells = []
+        for m in ("recall", "aurc", "f1"):
+            c = indexed.get((a, b, budget, m))
+            cells.append("-" if c is None else f"{c['mean_diff']:+.3f} [{c['ci95'][0]:+.3f}, {c['ci95'][1]:+.3f}]")
+        lines.append(f"| {a} | {b} | {budget} | " + " | ".join(cells) + f" | {row['wins']}/{row['losses']} of {row['n_reviews']} |")
     lines += ["", "## Matched exposure: mean recall once N papers have been exposed", ""]
     for budget, curves in curve_sets.items():
         grid = curves["exposure_grid"]

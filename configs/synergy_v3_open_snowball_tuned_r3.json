@@ -1,0 +1,34 @@
+{
+  "data_dir": "/scratch/users/kwx04/literature-search-agent/data/synergy-v3-open-v2",
+  "output_dir": "/scratch/users/kwx04/literature-search-agent/runs/synergy-v3-open-snowball-tuned-r3",
+  "index_scope": "pool",
+  "reviews": [
+    "Appenzeller-Herzog_2019",
+    "Bos_2018",
+    "Brouwer_2019",
+    "Donners_2021",
+    "Hall_2011",
+    "Leenaars_2019",
+    "Meijboom_2021",
+    "Muthu_2020"
+  ],
+  "budgets": [
+    10,
+    20,
+    40
+  ],
+  "seed": 329,
+  "agents": [
+    {
+      "name": "snowball",
+      "label": "snowball-tuned",
+      "modes": [
+        "citation",
+        "keyword",
+        "hybrid"
+      ],
+      "include_threshold": 0.04,
+      "note": "threshold chosen on v3 train split (runs/snowball-tune-train)"
+    }
+  ]
+}

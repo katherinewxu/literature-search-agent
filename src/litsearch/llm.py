@@ -84,17 +84,18 @@ class TurnRecord:
 
 
 def parse_turn(text: str) -> dict[str, Any]:
-    """Extract the turn JSON; tolerates code fences and surrounding prose."""
-    text = text.strip()
-    fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
-    if fenced:
-        text = fenced.group(1)
-    elif not text.startswith("{"):
-        match = re.search(r"\{.*\}", text, re.DOTALL)
-        if not match:
-            raise ValueError("response has no JSON object")
-        text = match.group(0)
-    value = json.loads(text)
+    """Decode the first complete JSON object in the reply; ignores fences and trailing text."""
+    decoder = json.JSONDecoder()
+    value = None
+    for match in re.finditer(r"\{", text):
+        try:
+            value, _ = decoder.raw_decode(text, match.start())
+        except json.JSONDecodeError:
+            continue
+        if isinstance(value, dict) and "action" in value:
+            break
+    if value is None:
+        raise ValueError("response has no JSON object")
     if not isinstance(value, dict):
         raise ValueError("response JSON is not an object")
     action = value.get("action")
@@ -211,11 +212,14 @@ class LLMSearchAgent:
                 actions.append(Action(kind, paper_id=paper_id))
         action = parsed["action"]
         name = str(action["kind"])
-        if name not in MODE_TOOLS[observation.mode]:
-            self.stats["disallowed"] += 1
-            name = "stop"
         if observation.remaining_budget <= 0 and name != "stop":
             name = "stop"
+        if name not in MODE_TOOLS[observation.mode]:
+            # Same treatment as an unknown paper: keep the screening, charge the slip.
+            self.stats["disallowed"] += 1
+            self._history.append(f"{name} (not available in {observation.mode} mode; charged 1)")
+            actions.append(Action(ActionKind.NOOP))
+            return actions
         if name == "search":
             query = str(action.get("query") or "").strip() or observation.question
             actions.append(Action(ActionKind.SEARCH, query=query[:300], k=10))

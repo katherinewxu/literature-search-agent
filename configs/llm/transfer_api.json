@@ -1,6 +1,6 @@
 {
   "data_dir": "/scratch/users/kwx04/literature-search-agent/data/synergy-ext-transfer-v2",
-  "output_dir": "/scratch/users/kwx04/literature-search-agent/runs/ext-transfer-api-r3",
+  "output_dir": "/scratch/users/kwx04/literature-search-agent/runs/ext-transfer-api-r4",
   "index_scope": "pool",
   "seed": 329,
   "agents": [
