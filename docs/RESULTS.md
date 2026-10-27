@@ -106,8 +106,13 @@ stopping; see failures).
   coverage failure, not a graph failure.
 - Screening errors are the second source: Sonnet saw 77% of gold but kept 67% (title-only
   screening; ~25% of gold lacks an OpenAlex abstract).
-- Weak models fail differently: qwen3-32b stops early with unused budget (B=40 citation:
-  36 of 40 units unused on average) and haiku-5.5 in citation mode also under-spends.
+- **Citation mode induces premature stopping in every model.** Mean unused budget at B=40,
+  citation / keyword / hybrid: sonnet 20.4 / 2.0 / 2.5; haiku 32.4 / 14.4 / 7.8; qwen3-32b
+  36.2 / 27.1 / 12.6 (r4, after charging disallowed tools instead of ending the episode).
+  With only expansion available, agents run out of papers they consider worth chasing and
+  stop; with search available, strong models keep reformulating. This is a second way the
+  citation-only tool set is limiting, separate from reachability.
+- Weaker models stop early in every mode (qwen3-32b leaves a third of the hybrid budget).
 - Hall_2011 (software engineering) and Muthu_2020 (spine surgery) have sparse gold citation
   neighborhoods (mean gold degree ~9 vs. 13–43 elsewhere) and are the hardest reviews for
   citation-only agents.
