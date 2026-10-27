@@ -429,7 +429,7 @@ class OpenAIChatBackend:
         if self.ledger is not None:
             self.ledger.add(usd, self.model, int(usage.get("total_tokens") or 0))
         if cache_path:
-            tmp = cache_path.with_suffix(".tmp")
+            tmp = cache_path.with_suffix(f".{os.getpid()}.{threading.get_ident()}.tmp")
             tmp.write_text(json.dumps({"content": content, "usage": usage}), encoding="utf-8")
             tmp.replace(cache_path)
         return content

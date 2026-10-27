@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import threading
 import time
 import urllib.error
 import urllib.parse
@@ -101,7 +102,7 @@ class OpenAlexClient:
                 time.sleep(2**attempt)
         else:
             raise RuntimeError(f"OpenAlex request failed after {self.retries} attempts")
-        tmp = cache_path.with_suffix(".tmp")
+        tmp = cache_path.with_suffix(f".{os.getpid()}.{threading.get_ident()}.tmp")
         tmp.write_text(json.dumps(result, sort_keys=True), encoding="utf-8")
         tmp.replace(cache_path)
         time.sleep(self.delay_seconds)
