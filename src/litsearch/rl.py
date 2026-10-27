@@ -63,7 +63,7 @@ def _load_policy(config: dict[str, Any], *, adapter: str | None = None, trainabl
 
     name = config["model"]
     tokenizer = AutoTokenizer.from_pretrained(name)
-    model = AutoModelForCausalLM.from_pretrained(name, torch_dtype=torch.bfloat16)
+    model = AutoModelForCausalLM.from_pretrained(name, dtype=torch.bfloat16)
     model.to("cuda" if torch.cuda.is_available() else "cpu")
     model.gradient_checkpointing_enable()
     model.config.use_cache = False
@@ -88,8 +88,12 @@ def _token_logprobs(model, input_ids, labels):
     """Per-token log-probs of the labelled (response) positions."""
     import torch
 
-    logits = model(input_ids=input_ids).logits[:, :-1, :].float()
-    targets = labels[:, 1:]
+    # Responses sit at the end of the sequence, so only the last n+1 positions need logits;
+    # full-sequence fp32 logits (6k tokens x 151k vocab) do not fit beside vLLM.
+    first = int((labels[0] != -100).nonzero()[0])
+    keep = labels.shape[1] - first + 1
+    logits = model(input_ids=input_ids, logits_to_keep=keep).logits[:, :-1, :].float()
+    targets = labels[:, -(keep - 1):]
     mask = targets != -100
     logprobs = torch.log_softmax(logits, dim=-1).gather(-1, targets.clamp(min=0).unsqueeze(-1)).squeeze(-1)
     return logprobs[mask]
