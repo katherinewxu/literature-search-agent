@@ -15,6 +15,11 @@ set -euo pipefail
 KEYS=$(grep -v '^\s*$' "$HOME/literature-search-agent/$KEYS_FILE" | paste -sd, -)
 r=/scratch/users/$USER/literature-search-agent
 cd ~/literature-search-agent
+# Optional OpenAlex key (own $1/day budget instead of the shared per-IP one); never echoed.
+if [ -s "$HOME/.config/litsearch/openalex.key" ]; then
+  OPENALEX_API_KEY="$(tr -d '[:space:]' < "$HOME/.config/litsearch/openalex.key")"
+  export OPENALEX_API_KEY
+fi
 for dir in "$r/data/synergy-$NAME-base" "$r/data/synergy-$NAME"; do
   if [ -e "$dir" ]; then echo "refusing to overwrite $dir" >&2; exit 1; fi
 done

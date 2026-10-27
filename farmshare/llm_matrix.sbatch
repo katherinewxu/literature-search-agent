@@ -15,6 +15,8 @@ set -euo pipefail
 r=/scratch/users/$USER/literature-search-agent
 cd ~/literature-search-agent
 export HF_HOME="$r/model-cache/huggingface"
+# FlashInfer JIT-compiles its sampler and FarmShare GPU nodes have no nvcc.
+export VLLM_USE_FLASHINFER_SAMPLER=0
 port=$((8100 + SLURM_JOB_ID % 800))
 "$r/envs/ml/bin/vllm" serve "$MODEL" --served-model-name "$SERVED" --port "$port" \
   --max-model-len "${MAX_LEN:-16384}" --gpu-memory-utilization 0.90 --enable-prefix-caching \

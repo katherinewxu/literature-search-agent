@@ -11,6 +11,11 @@ set -euo pipefail
 : "${SRC:?}" "${DST:?}"
 r=/scratch/users/$USER/literature-search-agent
 cd ~/literature-search-agent
+# Optional OpenAlex key (own $1/day budget instead of the shared per-IP one); never echoed.
+if [ -s "$HOME/.config/litsearch/openalex.key" ]; then
+  OPENALEX_API_KEY="$(tr -d '[:space:]' < "$HOME/.config/litsearch/openalex.key")"
+  export OPENALEX_API_KEY
+fi
 .venv/bin/litsearch data open-graph --data "$r/data/$SRC" --output "$r/data/$DST" \
   --cache "$r/cache/openalex" --cap-per-review "${CAP:-5000}" --pool-multiple "${MULT:-1.0}" \
   | python3.12 -c "import json,sys; d=json.load(sys.stdin); print(json.dumps({k:v for k,v in d['open_graph'].items()}, indent=1))"
