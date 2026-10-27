@@ -139,15 +139,15 @@ def write_analysis(data: Path, run_dirs: list[Path], output: Path, *, open_data:
                 + f" | {row['gold_isolated']:.2f} | {row['gold_mean_degree']:.1f} |"
             )
     lines += ["", "## Strategy profile (share of charged budget by action)", "",
-              "| system | B | search | expand_refs | expand_citers | read | noop | unique queries | first expand step | stops early |",
-              "|---|---|---|---|---|---|---|---|---|---|"]
+              "| system | B | search | expand_refs | expand_citers | read | noop | unique queries | first expand step | leftover budget | stops with >=25% left |",
+              "|---|---|---|---|---|---|---|---|---|---|---|"]
     for key, row in strategy.items():
         system, budget = key.split("|")
         share = row["budget_share"]
         first = row["first_expand_step"]
         lines.append(
             f"| {system} | {budget[1:]} | " + " | ".join(f"{share.get(k, 0):.2f}" for k in ("search", "expand_refs", "expand_citers", "read", "noop"))
-            + f" | {row['unique_queries']:.1f} | {'-' if first is None else f'{first:.1f}'} | {row['stop_early_rate']:.2f} |"
+            + f" | {row['unique_queries']:.1f} | {'-' if first is None else f'{first:.1f}'} | {row['leftover_budget']:.2f} | {row['stop_early_rate']:.2f} |"
         )
     lines += ["", f"## Missed gold at B={max(budgets)} (counts over episodes)", "",
               "| system | exposed, not included | not reached in budget | unreached, BM25 rank<=100 | unreachable & rank>100 | no lexical overlap | missing abstract |",

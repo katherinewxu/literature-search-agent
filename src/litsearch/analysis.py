@@ -183,7 +183,7 @@ def strategy_profile(runs: list[dict[str, Any]]) -> dict[str, Any]:
         calls: Counter[str] = Counter()
         queries: list[int] = []
         first_switch: list[int] = []
-        stops_early = 0
+        leftover: list[float] = []
         for run in group:
             seen_queries = set()
             kinds = []
@@ -200,7 +200,7 @@ def strategy_profile(runs: list[dict[str, Any]]) -> dict[str, Any]:
             if switch is not None:
                 first_switch.append(switch)
             final_budget = run["trace"][-1]["budget_after"] if run["trace"] else 0
-            stops_early += int(final_budget > 0)
+            leftover.append(max(0, final_budget) / run["episode"]["budget"])
         total = sum(spend.values()) or 1
         out[key] = {
             "n": len(group),
@@ -208,7 +208,8 @@ def strategy_profile(runs: list[dict[str, Any]]) -> dict[str, Any]:
             "calls_per_episode": {k: v / len(group) for k, v in sorted(calls.items())},
             "unique_queries": statistics.fmean(queries) if queries else 0.0,
             "first_expand_step": statistics.fmean(first_switch) if first_switch else None,
-            "stop_early_rate": stops_early / len(group),
+            "leftover_budget": statistics.fmean(leftover),
+            "stop_early_rate": sum(x >= 0.25 for x in leftover) / len(group),
         }
     return out
 
