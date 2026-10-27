@@ -86,6 +86,17 @@ class AgentTests(unittest.TestCase):
         with self.assertRaises(SpendCapReached):
             backend.complete([{"role": "user", "content": "x"}], temperature=0, seed=None)
 
+    def test_spend_ledger_is_thread_safe(self):
+        import tempfile
+        from concurrent.futures import ThreadPoolExecutor
+
+        from litsearch.llm import SpendLedger
+
+        path = Path(tempfile.mkdtemp()) / "ledger.jsonl"
+        with ThreadPoolExecutor(16) as pool:
+            list(pool.map(lambda i: SpendLedger(path, 100.0).add(0.01, "m" * 200, i), range(400)))
+        self.assertAlmostEqual(SpendLedger(path, 100.0).total(), 4.0)
+
     def test_snowball_name(self):
         self.assertEqual(SnowballAgent().name, "snowball")
         self.assertEqual(RankedRetrievalAgent().name, "retrieval")

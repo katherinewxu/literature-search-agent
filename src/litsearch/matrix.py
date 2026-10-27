@@ -15,10 +15,11 @@ from .store import CorpusStore
 
 
 def _make_agent(name: str, config: dict[str, Any], seed: int, backends: dict[str, Any]):
+    label = config.get("label", name)
     if name == "snowball":
-        return SnowballAgent(include_threshold=float(config.get("include_threshold", 0.16)))
+        return SnowballAgent(name=label, include_threshold=float(config.get("include_threshold", 0.16)))
     if name == "random":
-        return RandomAgent(seed=seed)
+        return RandomAgent(seed=seed, name=label)
     if name == "retrieval":
         return RankedRetrievalAgent(name=config.get("label", "retrieval"))
     if name == "llm":
@@ -49,6 +50,7 @@ def _backend(config: dict[str, Any]):
         max_tokens=int(config.get("max_tokens", 600)),
         extra_body=config.get("extra_body"),
         price_per_mtok=tuple(config["price_per_mtok"]) if config.get("price_per_mtok") else None,
+        system_suffix=config.get("system_suffix", ""),
     )
 
 

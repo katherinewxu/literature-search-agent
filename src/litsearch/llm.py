@@ -272,28 +272,46 @@ class SpendCapReached(BaseException):
 
 
 class SpendLedger:
-    """Append-only USD ledger shared by every process/job via an exclusive file lock."""
+    """Append-only USD ledger shared by every thread, process, and job.
+
+    On NFS, ``flock`` degrades to per-process POSIX locks, so threads in one job are
+    additionally serialized with an in-process lock; each record is one O_APPEND write.
+    """
+
+    _thread_locks: dict[str, threading.Lock] = {}
+    _registry_lock = threading.Lock()
 
     def __init__(self, path: str | Path, cap_usd: float) -> None:
         self.path = Path(path)
         self.cap_usd = cap_usd
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.path.touch(exist_ok=True)
+        with SpendLedger._registry_lock:
+            self._thread_lock = SpendLedger._thread_locks.setdefault(str(self.path.resolve()), threading.Lock())
 
     def _locked(self, fn):
         import fcntl
 
-        with self.path.open("r+", encoding="utf-8") as stream:
-            fcntl.flock(stream, fcntl.LOCK_EX)
+        with self._thread_lock:
+            fd = os.open(self.path, os.O_RDWR | os.O_APPEND)
             try:
-                return fn(stream)
+                fcntl.lockf(fd, fcntl.LOCK_EX)
+                try:
+                    return fn(fd)
+                finally:
+                    fcntl.lockf(fd, fcntl.LOCK_UN)
             finally:
-                fcntl.flock(stream, fcntl.LOCK_UN)
+                os.close(fd)
 
-    @staticmethod
-    def _total(stream) -> float:
-        stream.seek(0)
-        return sum(float(json.loads(line)["usd"]) for line in stream if line.strip())
+    def _total(self, fd) -> float:
+        with open(self.path, encoding="utf-8") as stream:
+            total = 0.0
+            for line in stream:
+                try:
+                    total += float(json.loads(line)["usd"]) if line.strip() else 0.0
+                except (ValueError, KeyError):
+                    raise RuntimeError(f"corrupt spend ledger line in {self.path}: {line[:80]!r}")
+            return total
 
     def total(self) -> float:
         return self._locked(self._total)
@@ -304,11 +322,8 @@ class SpendLedger:
             raise SpendCapReached(f"spent ${spent:.2f} of ${self.cap_usd:.2f} cap")
 
     def add(self, usd: float, model: str, tokens: int) -> None:
-        def append(stream):
-            stream.seek(0, 2)
-            stream.write(json.dumps({"t": time.time(), "usd": usd, "model": model, "tokens": tokens}) + "\n")
-
-        self._locked(append)
+        record = json.dumps({"t": time.time(), "usd": usd, "model": model, "tokens": tokens}) + "\n"
+        self._locked(lambda fd: os.write(fd, record.encode()))
 
 
 class OpenAIChatBackend:
@@ -327,11 +342,14 @@ class OpenAIChatBackend:
         extra_body: dict[str, Any] | None = None,
         ledger: SpendLedger | None = None,
         price_per_mtok: tuple[float, float] | None = None,
+        system_suffix: str = "",
     ) -> None:
         self.model = model
         self.ledger = ledger
         # Fallback (input, output) USD per million tokens when the API omits usage.cost.
         self.price_per_mtok = price_per_mtok
+        # Model-specific control tag appended to the system message (e.g. Qwen3's "/no_think").
+        self.system_suffix = system_suffix
         self.base_url = (base_url or os.environ.get("MODEL_API_BASE") or "https://api.openai.com/v1").rstrip("/")
         self.api_key = os.environ.get(api_key_env) or os.environ.get("OPENAI_API_KEY") or "EMPTY"
         self.cache_dir = Path(cache_dir) if cache_dir else None
@@ -345,6 +363,8 @@ class OpenAIChatBackend:
         self._lock = threading.Lock()
 
     def complete(self, messages: list[dict[str, str]], *, temperature: float, seed: int | None) -> str:
+        if self.system_suffix and messages and messages[0]["role"] == "system":
+            messages = [{**messages[0], "content": messages[0]["content"] + self.system_suffix}, *messages[1:]]
         payload: dict[str, Any] = {
             "model": self.model,
             "messages": messages,

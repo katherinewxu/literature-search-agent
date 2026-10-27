@@ -13,5 +13,6 @@ config_path="${MATRIX_CONFIG:?Set MATRIX_CONFIG to the absolute matrix JSON path
 cd "$project_dir"
 source .venv/bin/activate
 
-litsearch matrix --config "$config_path" --index "$SLURM_ARRAY_TASK_ID"
+export HF_HOME="/scratch/users/$USER/literature-search-agent/model-cache/huggingface"
+"${LITSEARCH_BIN:-litsearch}" matrix --config "$config_path" --index "$SLURM_ARRAY_TASK_ID"
 

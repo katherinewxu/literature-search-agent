@@ -16,8 +16,8 @@
       "base_url": "https://openrouter.ai/api/v1",
       "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
       "spend_ledger": "/scratch/users/kwx04/literature-search-agent/spend/openrouter.jsonl",
-      "spend_cap_usd": 150.0,
-      "max_tokens": 800,
+      "spend_cap_usd": 60.0,
+      "max_tokens": 1500,
       "modes": [
         "citation",
         "keyword",
@@ -36,13 +36,18 @@
       "base_url": "https://openrouter.ai/api/v1",
       "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
       "spend_ledger": "/scratch/users/kwx04/literature-search-agent/spend/openrouter.jsonl",
-      "spend_cap_usd": 150.0,
-      "max_tokens": 800,
+      "spend_cap_usd": 60.0,
+      "max_tokens": 1500,
       "modes": [
         "citation",
         "keyword",
         "hybrid"
-      ]
+      ],
+      "extra_body": {
+        "reasoning": {
+          "enabled": false
+        }
+      }
     },
     {
       "name": "llm",
@@ -53,42 +58,17 @@
         0.28
       ],
       "temperature": 0.0,
-      "extra_body": {
-        "reasoning": {
-          "enabled": false
-        }
-      },
       "base_url": "https://openrouter.ai/api/v1",
       "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
       "spend_ledger": "/scratch/users/kwx04/literature-search-agent/spend/openrouter.jsonl",
-      "spend_cap_usd": 150.0,
-      "max_tokens": 800,
+      "spend_cap_usd": 60.0,
+      "max_tokens": 1500,
       "modes": [
         "citation",
         "keyword",
         "hybrid"
-      ]
-    },
-    {
-      "name": "llm",
-      "label": "opus-5.5",
-      "model": "anthropic/claude-opus-5.5",
-      "price_per_mtok": [
-        4.0,
-        20.0
       ],
-      "temperature": 0.0,
-      "base_url": "https://openrouter.ai/api/v1",
-      "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
-      "spend_ledger": "/scratch/users/kwx04/literature-search-agent/spend/openrouter.jsonl",
-      "spend_cap_usd": 150.0,
-      "max_tokens": 800,
-      "modes": [
-        "hybrid"
-      ],
-      "budgets": [
-        40
-      ]
+      "system_suffix": "\n/no_think"
     }
   ],
   "budgets": [

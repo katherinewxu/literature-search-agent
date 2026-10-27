@@ -107,13 +107,23 @@ class Specter2Encoder:
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.tokenizer = AutoTokenizer.from_pretrained(SPECTER2_BASE)
         self.model = AutoAdapterModel.from_pretrained(SPECTER2_BASE)
-        self.model.load_adapter(adapter, source="hf", load_as="active", set_active=True)
+        name = self.model.load_adapter(adapter, source="hf", load_as=adapter.rsplit("/", 1)[-1])
+        self.model.set_active_adapters(name)
+        if not self.model.active_adapters:
+            raise RuntimeError(f"SPECTER2 adapter {adapter} failed to activate")
+        self.adapter_name = name
         self.model.to(self.device).eval()
 
-    def encode(self, texts: list[str], batch_size: int = 64):
+    def encode(self, texts: list[str], batch_size: int = 64, log_every: int = 0):
+        import time
+
         batches = []
+        started = time.time()
         with self._torch.inference_mode():
             for offset in range(0, len(texts), batch_size):
+                if log_every and offset % log_every < batch_size:
+                    rate = offset / max(time.time() - started, 1e-9)
+                    print(f"encoded {offset}/{len(texts)} ({rate:.1f}/s)", flush=True)
                 inputs = self.tokenizer(
                     texts[offset : offset + batch_size],
                     padding=True,
@@ -139,7 +149,10 @@ def build_specter2_index(papers: Iterable[Paper], output: str | Path) -> dict[st
     output = Path(output)
     paper_list = sorted(papers, key=lambda paper: paper.id)
     encoder = Specter2Encoder(SPECTER2_DOC_ADAPTER)
-    vectors = encoder.encode([paper_text(p, encoder.tokenizer.sep_token) for p in paper_list])
+    print(f"adapter {encoder.adapter_name} active on {encoder.device}", flush=True)
+    vectors = encoder.encode(
+        [paper_text(p, encoder.tokenizer.sep_token) for p in paper_list], log_every=2048
+    )
     output.parent.mkdir(parents=True, exist_ok=True)
     np.save(output.with_suffix(".npy"), vectors)
     output.with_suffix(".ids.json").write_text(
