@@ -1,0 +1,29 @@
+{
+  "data_dir": "/scratch/users/kwx04/literature-search-agent/data/synergy-ext-transfer-v2",
+  "output_dir": "/scratch/users/kwx04/literature-search-agent/runs/ext-transfer-baselines-r3",
+  "index_scope": "pool",
+  "split": "transfer",
+  "budgets": [
+    20,
+    40
+  ],
+  "seed": 329,
+  "agents": [
+    {
+      "name": "retrieval",
+      "label": "bm25",
+      "retriever": "bm25",
+      "modes": [
+        "keyword"
+      ]
+    },
+    {
+      "name": "snowball",
+      "label": "snowball-tuned",
+      "modes": [
+        "hybrid"
+      ],
+      "include_threshold": 0.04
+    }
+  ]
+}
