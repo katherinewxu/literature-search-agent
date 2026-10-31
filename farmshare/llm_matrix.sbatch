@@ -30,5 +30,8 @@ for _ in $(seq 1 180); do
 done
 curl -sf "http://localhost:$port/v1/models"
 echo
-MODEL_API_BASE="http://localhost:$port/v1" "$r/envs/ml/bin/litsearch" matrix \
-  --config "$MATRIX_CONFIG" --workers "${WORKERS:-16}" --skip-existing ${SHARD:+--shard $SHARD}
+# MATRIX_CONFIG may list several configs separated by spaces; they run in order.
+for config in $MATRIX_CONFIG; do
+  MODEL_API_BASE="http://localhost:$port/v1" "$r/envs/ml/bin/litsearch" matrix \
+    --config "$config" --workers "${WORKERS:-16}" --skip-existing ${SHARD:+--shard $SHARD}
+done

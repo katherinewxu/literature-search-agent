@@ -1,0 +1,57 @@
+{
+  "data_dir": "/scratch/users/kwx04/literature-search-agent/data/synergy-v3",
+  "output_dir": "/scratch/users/kwx04/literature-search-agent/runs/synergy-v3-small-trained-r4",
+  "reviews": [
+    "Appenzeller-Herzog_2019",
+    "Bos_2018",
+    "Brouwer_2019",
+    "Donners_2021",
+    "Hall_2011",
+    "Leenaars_2019",
+    "Meijboom_2021",
+    "Muthu_2020"
+  ],
+  "budgets": [
+    10,
+    20,
+    40
+  ],
+  "agents": [
+    {
+      "name": "llm",
+      "label": "qwen3-1.7b-sft",
+      "model": "qwen3-1.7b-sft",
+      "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+      "extra_body": {
+        "chat_template_kwargs": {
+          "enable_thinking": false
+        }
+      },
+      "temperature": 0.0,
+      "modes": [
+        "citation",
+        "keyword",
+        "hybrid"
+      ]
+    },
+    {
+      "name": "llm",
+      "label": "qwen3-1.7b-grpo",
+      "model": "qwen3-1.7b-grpo",
+      "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+      "extra_body": {
+        "chat_template_kwargs": {
+          "enable_thinking": false
+        }
+      },
+      "temperature": 0.0,
+      "modes": [
+        "citation",
+        "keyword",
+        "hybrid"
+      ]
+    }
+  ],
+  "index_scope": "pool",
+  "seed": 329
+}
