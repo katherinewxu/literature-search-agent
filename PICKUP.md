@@ -139,21 +139,37 @@ adapter were cancelled). Dense baselines: `configs/synergy_v3_dense_r3.json`,
 `configs/synergy_v3_open_dense_r3.json`, run with
 `LITSEARCH_BIN=$r/envs/emb/bin/litsearch` and `farmshare/eval_array.sbatch`.
 
+## State as of 2026-10-31 (commit after 581eb1f)
+
+Read `docs/RESULTS.md` first: it holds the current findings (Q1, grader question, Q3,
+failure analysis, limitations). Full tables: `analysis/closed-r4/analysis.md`,
+`analysis/open-r4/analysis.md` on scratch.
+
+Completed runs (scratch `runs/`): baselines r3 (closed/open), snowball-tuned r3
+(threshold 0.04 chosen on v3 train split, `snowball-tune-train`), API r4 (sonnet-5.5,
+haiku-5.5, qwen3-32b; closed + open; r3 API dirs are superseded by r4 because of a parser
+bug and a disallowed-tool->stop bug), `synergy-v3-qwen3-1.7b-r4` (small model prompted),
+`ext-transfer-api-r4` (24 transfer reviews), `ext-train-teacher-haiku` (360 episodes).
+Data `synergy-ext-train-v2` and `synergy-ext-transfer-v2` are now complete (OpenAlex key in
+`~/.config/litsearch/openalex.key`, 10k requests/day). SPECTER2 indexes exist for v3 and
+v3-open-v2. OpenRouter spend: ~$24.6 of the $60 project cap.
+
+SFT data: `sft/teacher-haiku-v1.jsonl` (180 best-of-360 episodes, 2702 turns, 33 reviews).
+Training smoke test passed on an L40S (job 1899823). GPU nodes need
+`VLLM_USE_FLASHINFER_SAMPLER=0` (no nvcc).
+
+In flight when this was written: dense baselines (arrays 1917278/1917280), transfer
+baselines (1917325), SFT 1917322 -> GRPO 1917323 -> eval 1917365
+(`farmshare/eval_small_models.sbatch`: base/SFT/GRPO on v3, transfer, open graph).
+
 ## Next actions
 
-1. When API runs finish: `envs/ml/bin/litsearch analyze --data data/synergy-v3
-   --run-dir runs/synergy-v3-baselines-r3 --run-dir runs/synergy-v3-api-r3
-   --open-data data/synergy-v3-open-v2 --output analysis/v3-r3` (and the open-graph runs
-   against `synergy-v3-open-v2`); paired tests via `analysis.paired`.
-2. Dense baselines once both SPECTER2 indexes exist.
-3. GPU: `farmshare/llm_matrix.sbatch` smoke with Qwen/Qwen3-1.7B (`configs/llm/smoke.json`),
-   then the small-model prompted runs (`configs/llm/v3_qwen3-1.7b.json`).
-4. Training pipeline (needs complete ext-train abstracts): teacher episodes
-   (`configs/llm/teacher_api.json`, haiku, 360 cells, ~$5) -> `litsearch collect-sft`
-   -> `train-sft` -> `train-grpo` (vLLM with `--enable-lora`,
-   VLLM_ALLOW_RUNTIME_LORA_UPDATING=True) -> evaluate adapters on v3 + transfer.
-5. Transfer (Q4): `configs/llm/transfer_api.json` once transfer abstracts are complete.
-6. Write-up: failure analysis, fresh-env test, README quick start, training pass/skip.
+1. When the chain finishes: check `checkpoints/qwen3-1.7b-grpo-v1/grpo_log.jsonl` (reward
+   trend, KL, parse failures); if GRPO diverges, evaluate SFT only and report it.
+2. Re-run `litsearch analyze` over all closed runs (add dense, small-model dirs) and open
+   runs; transfer analysis with `--data data/synergy-ext-transfer-v2`.
+3. Fill the Q2/Q4/dense sections of `docs/RESULTS.md`; per-split (test-only) table.
+4. Optional if budget remains: opus-5.5 hybrid B40 (~$7), a second seed for temperature>0.
 
 ## Known design constraints and pitfalls
 
