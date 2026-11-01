@@ -5,7 +5,8 @@ Meijboom/Leenaars/Brouwer/Bos, dev Hall/Donners, test Muthu/Appenzeller-Herzog),
 episode per review × mode × budget, environment r3 semantics (free screening after the
 budget is spent; per-review BM25 index). LLM runs are r4 (`runs/synergy-v3-api-r4`,
 `runs/synergy-v3-open-api-r4`). Paired differences use a bootstrap over the 8 reviews.
-Full tables: `analysis/closed-r4/analysis.md`, `analysis/open-r4/analysis.md`.
+Full tables: `analysis/closed-r5/analysis.md`, `analysis/open-r5/analysis.md`,
+`analysis/transfer-r5/analysis.md` (r5 = r4 plus dense, small-model and transfer runs).
 
 Because 8 reviews is small, every claim below is stated with its review-level paired CI
 and win/loss count; per-split (test-only) numbers are reported separately in the final
@@ -18,6 +19,8 @@ on the 4 train reviews only (`runs/snowball-tune-train`).
 | label | what it is |
 |---|---|
 | bm25 | ranked BM25 over the review title + criteria, includes everything it sees (recall ceiling for lexical search, precision floor) |
+| specter2 | same, but ranked by SPECTER2 dense retrieval (ad-hoc query adapter vs. proximity document embeddings) |
+| snowball-specter2 | snowball with SPECTER2 search |
 | snowball / snowball-tuned | scripted: search (hybrid/keyword), read frontier papers, lexical screening, chase refs+citers of included papers |
 | random | unscreened random traversal |
 | sonnet-5.5, haiku-5.5, qwen3-32b | prompted LLM agent (`litsearch.llm`), temperature 0, one call per turn (screen + one charged action), via OpenRouter |
@@ -36,6 +39,7 @@ Mean recall (F1) by budget:
 | sonnet-5.5 / citation | .266 (.34) | .264 (.32) | .340 (.40) |
 | haiku-5.5 / hybrid | .273 (.28) | .432 (.32) | .626 (.39) |
 | qwen3-32b / hybrid | .102 (.14) | .219 (.24) | .310 (.21) |
+| specter2 / keyword | .289 (.11) | .469 (.13) | .635 (.12) |
 | bm25 / keyword | .241 (.10) | .359 (.10) | .524 (.09) |
 | snowball-tuned / hybrid | .023 (.03) | .089 (.10) | .173 (.16) |
 | random / hybrid | .012 (.02) | .019 (.03) | .041 (.05) |
@@ -54,6 +58,35 @@ budget (8/8 reviews) and beats exhaustive BM25 inclusion in recall while being ~
 precise. This is not an exposure artifact: at B=40 sonnet/hybrid is *shown* 336 papers vs.
 BM25's 377, yet 77% of gold is among them (BM25: 52%), and it includes 64 papers vs. 377.
 The cheap haiku-5.5 recovers most of the gain (.626 at B=40); the open qwen3-32b does not.
+
+**Caveat: a strong dense retriever closes the recall gap.** Exhaustive SPECTER2 inclusion
+reaches .635 at B=40. Sonnet/hybrid minus specter2: +.129 [-.012, +.287] (B=10, 6/2),
++.019 [-.072, +.123] (B=20, 3/5), +.031 [-.046, +.116] (B=40, 4/2); haiku/hybrid is within
+±.04 at every budget. So with the same call budget the prompted agent's *recall* advantage
+is over lexical search, not over good dense search; its robust advantage is precision
+(.415 vs. .064 at B=40, i.e. a reviewer screens 64 papers instead of 378). On the open
+graph, where distractors double, the agent's recall lead over SPECTER2 grows
+(+.141 [+.007, +.290] at B=20; +.091 [-.017, +.218] at B=40) because dense retrieval
+degrades (.635 -> .528) more than sonnet/hybrid (.666 -> .619). Dense search inside the
+snowball baseline barely helps (.130 vs. .173 tuned lexical at B=40): the scripted policy,
+not the retriever, is its bottleneck.
+
+### Test split only (Muthu_2020, Appenzeller-Herzog_2019; recall, B=10/20/40)
+
+| system | B=10 | B=20 | B=40 |
+|---|---|---|---|
+| sonnet-5.5 / hybrid | .177 | .079 | .331 |
+| sonnet-5.5 / citation | .135 | .038 | .154 |
+| haiku-5.5 / hybrid | .053 | .110 | .331 |
+| qwen3-32b / hybrid | .000 | .058 | .115 |
+| specter2 / keyword | .067 | .139 | .336 |
+| bm25 / keyword | .029 | .069 | .261 |
+| snowball-tuned / hybrid | .000 | .014 | .071 |
+
+The two test reviews are the hardest in the set (sparse gold neighborhoods, many gold
+without abstracts); absolute recall is low for every system and n=2 supports no ranking
+claim beyond "snowball < everything else". B=20 below B=10 for sonnet is one episode per
+cell at temperature 0, i.e. trajectory variance, not a budget effect.
 
 ## Grader question: is the citation graph limiting?
 
@@ -117,12 +150,54 @@ stopping; see failures).
   neighborhoods (mean gold degree ~9 vs. 13–43 elsewhere) and are the hardest reviews for
   citation-only agents.
 
-## Pending (filled in as runs complete)
+## Q4. Cross-field transfer (24 non-life-science SYNERGY+ reviews, closed graph)
 
-- Q2: small open model (Qwen3-1.7B) prompted, SFT on rejection-sampled haiku teacher
-  episodes from 40 disjoint life-science reviews, then GRPO; vs. the large prompted models.
-- Q4: cross-field transfer on 24 held-out non-life-science reviews (`ext-transfer-api-r4`).
-- Dense retrieval (SPECTER2) baselines.
+`data/synergy-ext-transfer-v2`: 24 held-out reviews (software engineering, education,
+psychology, social science, environment...) disjoint from both the 8 evaluation reviews
+and the 40 SFT-teacher reviews. Prompts unchanged.
+
+| system | B=20 recall | B=40 recall | B=40 precision | Δrecall vs bm25 at B=40 [95% CI] (wins/losses) |
+|---|---|---|---|---|
+| sonnet-5.5 / hybrid | – | .561 | .441 | +.087 [+.016, +.158] (15/9) |
+| haiku-5.5 / hybrid | .370 | .477 | .390 | +.003 [-.078, +.077] (14/10) |
+| qwen3-32b / hybrid | .271 | .351 | .302 | -.123 [-.212, -.040] (9/15) |
+| bm25 / keyword | .321 | .474 | .071 | – |
+| snowball-tuned / hybrid | .057 | .095 | .163 | -.379 (0/24) |
+
+**Answer.** The qualitative picture transfers: frontier agents keep a large precision /
+F1 advantage (ΔF1 vs. BM25 +.28 to +.34, CIs exclude 0), sonnet keeps a smaller but
+significant recall lead, and snowballing loses on all 24 reviews. The recall margin shrinks
+relative to life science (sonnet +.142 -> +.087; haiku +.10 -> +.00), partly because many
+transfer reviews have very sparse citation neighborhoods (Kapuka 0% of gold within 4 hops,
+Attai 34%, Harms 25%) and about half of missed gold lacks an abstract (sonnet 450/963, bm25 548/1117). Agents also stop earlier
+here (haiku leaves 25% of B=40 unused; 42% of episodes stop with >=25% left).
+
+## Dense retrieval (SPECTER2)
+
+See the Q1 caveat. SPECTER2 is the strongest non-LLM baseline in every condition
+(closed .635, open .528 at B=40), beats BM25 by +.110 [+.026, +.217] at B=20 (5/1), and
+misses fewer abstract-less gold (24 vs. 43 missed at B=40), consistent with title-only
+embeddings carrying more signal than title-only BM25. It does not help the scripted snowball.
+An LLM agent with a dense search tool was not run (budget); it is the obvious next system.
+
+## Pending
+
+- Q2: small open model (Qwen3-1.7B) prompted (done, below), SFT on rejection-sampled haiku
+  teacher episodes from 40 disjoint life-science reviews, then GRPO; vs. the large prompted
+  models. Training is running (SFT job 1917322 -> GRPO 1917323 -> eval 1917365).
+
+Prompted Qwen3-1.7B (closed, B=40): hybrid .125, keyword .111, citation .012. It *exposes*
+a lot of gold (search recall .369 hybrid, .476 keyword) but screens badly (screen recall
+~.21) and in citation mode wastes the budget on disallowed tools (stops after ~5 papers).
+The small model's failure is screening and protocol-following, not search.
+
+## Reproducibility
+
+- Fresh-environment test (2026-10-31): clean Python 3.12 venv from a source copy,
+  `pip install -e .`, README quickstart end to end (fixture build -> audit -> run ->
+  replay), `python -m unittest discover -s tests`: 42 tests OK.
+- Replays: `demo/muthu_sonnet_hybrid_b40.html` and `demo/muthu_sonnet_citation_b40.html`
+  (same test review, same model, the two tool sets) are self-contained HTML.
 
 ## Limitations
 
