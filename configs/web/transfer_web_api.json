@@ -1,0 +1,45 @@
+{
+  "data_dir": "/scratch/users/kwx04/literature-search-agent/data/synergy-ext-transfer-v2",
+  "universe": "openalex",
+  "openalex_cache": "/scratch/users/kwx04/literature-search-agent/cache/openalex-web",
+  "index_scope": "pool",
+  "seed": 329,
+  "budgets": [
+    20,
+    40
+  ],
+  "split": "transfer",
+  "output_dir": "/scratch/users/kwx04/literature-search-agent/runs/ext-transfer-web-r5",
+  "agents": [
+    {
+      "name": "retrieval",
+      "label": "openalex-search",
+      "modes": [
+        "keyword"
+      ]
+    },
+    {
+      "name": "llm",
+      "label": "haiku-5.5",
+      "model": "anthropic/claude-haiku-5.5",
+      "price_per_mtok": [
+        0.1,
+        0.5
+      ],
+      "temperature": 0.0,
+      "base_url": "https://openrouter.ai/api/v1",
+      "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+      "spend_ledger": "/scratch/users/kwx04/literature-search-agent/spend/openrouter.jsonl",
+      "spend_cap_usd": 60.0,
+      "max_tokens": 1500,
+      "modes": [
+        "hybrid"
+      ],
+      "extra_body": {
+        "reasoning": {
+          "enabled": false
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,86 @@
+{
+  "data_dir": "/scratch/users/kwx04/literature-search-agent/data/synergy-ext-transfer-v2",
+  "reviews": [
+    "Filges_2018",
+    "Adamo_2021",
+    "Ali_2024",
+    "Radjenovic_2013",
+    "Attai_2022",
+    "Nobrega-Dos_Santos_2023",
+    "Abgaz_2023",
+    "Deckers_2022",
+    "Seghers_2022",
+    "Wassenaar_2017",
+    "Harms_2024",
+    "Kapuka_2021",
+    "Viguie_2020",
+    "Smid_2019",
+    "Noetel_2021",
+    "Moran_2020",
+    "van_Ballegooijen_2024",
+    "Anmarkrud_2021",
+    "Theobald_2021",
+    "Quevedo_2023",
+    "Verdugo-Castro_2022",
+    "Taschner_2024",
+    "Rinne_2021",
+    "Filges_2022"
+  ],
+  "n_titles": 50,
+  "agents": [
+    {
+      "name": "llm",
+      "label": "sonnet-5.5",
+      "model": "anthropic/claude-sonnet-5.5",
+      "price_per_mtok": [
+        2.0,
+        10.0
+      ],
+      "temperature": 0.0,
+      "base_url": "https://openrouter.ai/api/v1",
+      "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+      "spend_ledger": "/scratch/users/kwx04/literature-search-agent/spend/openrouter.jsonl",
+      "spend_cap_usd": 60.0,
+      "max_tokens": 4000,
+      "modes": []
+    },
+    {
+      "name": "llm",
+      "label": "haiku-5.5",
+      "model": "anthropic/claude-haiku-5.5",
+      "price_per_mtok": [
+        0.1,
+        0.5
+      ],
+      "temperature": 0.0,
+      "base_url": "https://openrouter.ai/api/v1",
+      "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+      "spend_ledger": "/scratch/users/kwx04/literature-search-agent/spend/openrouter.jsonl",
+      "spend_cap_usd": 60.0,
+      "max_tokens": 4000,
+      "modes": [],
+      "extra_body": {
+        "reasoning": {
+          "enabled": false
+        }
+      }
+    },
+    {
+      "name": "llm",
+      "label": "qwen3-32b",
+      "model": "qwen/qwen3-32b",
+      "price_per_mtok": [
+        0.08,
+        0.28
+      ],
+      "temperature": 0.0,
+      "base_url": "https://openrouter.ai/api/v1",
+      "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+      "spend_ledger": "/scratch/users/kwx04/literature-search-agent/spend/openrouter.jsonl",
+      "spend_cap_usd": 60.0,
+      "max_tokens": 4000,
+      "modes": [],
+      "system_suffix": "\n/no_think"
+    }
+  ]
+}

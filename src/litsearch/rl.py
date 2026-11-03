@@ -62,6 +62,7 @@ def _load_policy(config: dict[str, Any], *, adapter: str | None = None, trainabl
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
     name = config["model"]
+    torch.manual_seed(int(config.get("seed", 329)))  # LoRA init and dropout-free training
     tokenizer = AutoTokenizer.from_pretrained(name)
     model = AutoModelForCausalLM.from_pretrained(name, dtype=torch.bfloat16)
     model.to("cuda" if torch.cuda.is_available() else "cpu")

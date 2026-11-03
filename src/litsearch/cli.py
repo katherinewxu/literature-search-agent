@@ -125,6 +125,10 @@ def _parser() -> argparse.ArgumentParser:
     analyze.add_argument("--run-dir", type=Path, action="append", required=True)
     analyze.add_argument("--open-data", type=Path, help="open-graph store for reachability")
     analyze.add_argument("--output", type=Path, required=True)
+
+    probe = commands.add_parser("probe-memory", help="closed-book recall of gold studies (no tools)")
+    probe.add_argument("--config", type=Path, required=True)
+    probe.add_argument("--output", type=Path, required=True)
     return parser
 
 
@@ -342,6 +346,14 @@ def main(argv: list[str] | None = None) -> int:
         from .analysis_report import write_analysis
 
         print(write_analysis(args.data, args.run_dir, args.output, open_data=args.open_data))
+        return 0
+
+    if args.command == "probe-memory":
+        from .memorization import run_probe
+
+        if args.output.exists():
+            raise SystemExit(f"refusing to overwrite {args.output}")
+        run_probe(json.loads(args.config.read_text(encoding="utf-8")), args.output)
         return 0
 
     if args.command in {"train-sft", "train-grpo"}:

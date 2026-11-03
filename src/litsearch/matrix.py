@@ -122,6 +122,12 @@ def run_matrix(
     elif shard is not None:
         cells = cells[shard[0] :: shard[1]]
     retrievers = _Retrievers(config, store)
+    web_store = None
+    if config.get("universe") == "openalex":
+        from .openalex import OpenAlexClient
+        from .web import WebStore
+
+        web_store = WebStore(store, OpenAlexClient(config["openalex_cache"], delay_seconds=0.12))
     backends = {
         agent["label"]: _backend(agent) for agent in config["agents"] if agent["name"] == "llm"
     }
@@ -143,14 +149,20 @@ def run_matrix(
         spec = EpisodeSpec(
             review.id, review.question, review.eligibility_criteria, cell["budget"], cell["mode"]
         )
-        env = LiteratureSearchEnv(store, retrievers.get(agent_config.get("retriever", "bm25"), review), spec)
+        if web_store is not None:
+            from .web import WebLiteratureSearchEnv
+
+            env = WebLiteratureSearchEnv(web_store, spec)
+        else:
+            env = LiteratureSearchEnv(store, retrievers.get(agent_config.get("retriever", "bm25"), review), spec)
         run = run_episode(env, _make_agent(agent_config["name"], agent_config, seed, backends))
         run["matrix"] = {
             "config": str(config_path),
             "label": agent_config.get("label", agent_config["name"]),
             "repeat": cell["repeat"],
             "index_scope": retrievers.scope,
-            "retriever": agent_config.get("retriever", "bm25"),
+            "retriever": "openalex-live" if web_store is not None else agent_config.get("retriever", "bm25"),
+            "universe": config.get("universe", "pool"),
             "data_dir": config["data_dir"],
         }
         return write_run(run, output)

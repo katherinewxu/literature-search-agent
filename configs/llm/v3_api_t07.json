@@ -1,0 +1,69 @@
+{
+  "data_dir": "/scratch/users/kwx04/literature-search-agent/data/synergy-v3",
+  "output_dir": "/scratch/users/kwx04/literature-search-agent/runs/synergy-v3-api-t07-r5",
+  "index_scope": "pool",
+  "seed": 329,
+  "reviews": [
+    "Appenzeller-Herzog_2019",
+    "Bos_2018",
+    "Brouwer_2019",
+    "Donners_2021",
+    "Hall_2011",
+    "Leenaars_2019",
+    "Meijboom_2021",
+    "Muthu_2020"
+  ],
+  "budgets": [
+    10,
+    20,
+    40
+  ],
+  "agents": [
+    {
+      "name": "llm",
+      "label": "haiku-5.5-t07",
+      "model": "anthropic/claude-haiku-5.5",
+      "price_per_mtok": [
+        0.1,
+        0.5
+      ],
+      "temperature": 0.7,
+      "base_url": "https://openrouter.ai/api/v1",
+      "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+      "spend_ledger": "/scratch/users/kwx04/literature-search-agent/spend/openrouter.jsonl",
+      "spend_cap_usd": 60.0,
+      "max_tokens": 1500,
+      "modes": [
+        "hybrid"
+      ],
+      "extra_body": {
+        "reasoning": {
+          "enabled": false
+        }
+      },
+      "repeats": 3
+    },
+    {
+      "name": "llm",
+      "label": "sonnet-5.5-t07",
+      "model": "anthropic/claude-sonnet-5.5",
+      "price_per_mtok": [
+        2.0,
+        10.0
+      ],
+      "temperature": 0.7,
+      "base_url": "https://openrouter.ai/api/v1",
+      "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+      "spend_ledger": "/scratch/users/kwx04/literature-search-agent/spend/openrouter.jsonl",
+      "spend_cap_usd": 60.0,
+      "max_tokens": 1500,
+      "modes": [
+        "hybrid"
+      ],
+      "repeats": 3,
+      "budgets": [
+        40
+      ]
+    }
+  ]
+}
