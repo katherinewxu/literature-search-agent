@@ -6,7 +6,7 @@ episode per review × mode × budget, environment r3 semantics (free screening a
 budget is spent; per-review BM25 index). LLM runs are r4 (`runs/synergy-v3-api-r4`,
 `runs/synergy-v3-open-api-r4`). Paired differences use a bootstrap over the 8 reviews.
 Full tables: `analysis/closed-r5/analysis.md`, `analysis/open-r5/analysis.md`,
-`analysis/transfer-r5/analysis.md` (r5 = r4 plus dense, small-model and transfer runs).
+`analysis/transfer-r5/analysis.md`, `analysis/small-{closed,open,transfer}-r5/analysis.md` (r5 = r4 plus dense, small-model and transfer runs).
 
 Because 8 reviews is small, every claim below is stated with its review-level paired CI
 and win/loss count; per-split (test-only) numbers are reported separately in the final
@@ -109,7 +109,7 @@ search; citation access alone is the weakest tool in every condition. The open g
 bounded one-hop backward expansion (not forward citers, not full-web search), so the claim
 is about this regime; true web search is left as future work (see limitations).
 
-## Q3. Emergent strategies (prompted agents; RL agent pending)
+## Q3. Emergent strategies (prompted agents; trained agent in Q3 addendum)
 
 Share of charged budget at B=40, closed graph:
 
@@ -180,16 +180,62 @@ misses fewer abstract-less gold (24 vs. 43 missed at B=40), consistent with titl
 embeddings carrying more signal than title-only BM25. It does not help the scripted snowball.
 An LLM agent with a dense search tool was not run (budget); it is the obvious next system.
 
-## Pending
+## Q2. Small trained agent vs. large prompted agents
 
-- Q2: small open model (Qwen3-1.7B) prompted (done, below), SFT on rejection-sampled haiku
-  teacher episodes from 40 disjoint life-science reviews, then GRPO; vs. the large prompted
-  models. Training is running (SFT job 1917322 -> GRPO 1917323 -> eval 1917365).
+**Training (pass).** The gate passed (360 valid teacher trajectories >= 200; leakage audit
+ok; one-GPU smoke test ok), so training was run, once, with pre-registered configs
+(`configs/train/*.json`); no hyperparameter search.
+- SFT: Qwen3-1.7B + LoRA (r=32) on 2,702 turns from 180 rejection-sampled haiku-5.5
+  episodes (top half by reward) on 40 life-science reviews disjoint from all evaluation
+  reviews; 2 epochs, 337 steps, 26 min on one L40S; loss .18 -> .12.
+- GRPO from the SFT adapter: reward recall - 0.1*FP/|S| - c*cost/B, group 8, 4 tasks/step,
+  40 steps (B=20, all three modes), KL to SFT beta=.02; 2h14m. Training reward by
+  10-step window .125 / .162 / .179 / .160 (tasks change every step, so this is noisy);
+  KL stayed < .002/token; 5 parse failures in 1,280 rollouts.
 
-Prompted Qwen3-1.7B (closed, B=40): hybrid .125, keyword .111, citation .012. It *exposes*
-a lot of gold (search recall .369 hybrid, .476 keyword) but screens badly (screen recall
-~.21) and in citation mode wastes the budget on disallowed tools (stops after ~5 papers).
-The small model's failure is screening and protocol-following, not search.
+Recall (precision) on the 8 evaluation reviews, hybrid mode:
+
+| system | params | closed B=20 | closed B=40 | open B=40 | transfer B=40 (24 reviews) |
+|---|---|---|---|---|---|
+| qwen3-1.7b prompted | 1.7B | .125 (.10) | .125 (.10) | .072 (.09) | .112 (.22) |
+| qwen3-1.7b SFT | 1.7B | .368 (.19) | .433 (.15) | .449 (.14) | .459 (.23) |
+| qwen3-1.7b SFT+GRPO | 1.7B | .420 (.17) | .467 (.12) | .458 (.11) | .483 (.20) |
+| qwen3-32b prompted | 32B | .219 (.28) | .310 (.17) | .255 (.22) | .351 (.30) |
+| haiku-5.5 prompted (teacher) | – | .432 (.32) | .626 (.29) | .499 (.26) | .477 (.39) |
+| sonnet-5.5 prompted | – | .488 (.43) | .666 (.42) | .619 (.35) | .561 (.44) |
+| bm25 / specter2 (include all) | – | .359 / .469 | .524 / .635 | .396 / .528 | .474 / – |
+
+Paired differences (recall; 95% CI over reviews; wins/losses):
+
+| comparison | closed B=40 | open B=40 | transfer B=40 |
+|---|---|---|---|
+| SFT - prompted 1.7B | +.308 [+.182, +.437] 7/0 | +.377 [+.193, +.558] 7/0 | +.347 [+.271, +.437] 24/0 |
+| GRPO - SFT | +.034 [-.024, +.096] 4/2 | +.009 [-.051, +.079] 3/4 | +.025 [-.017, +.064] 14/7 |
+| GRPO - qwen3-32b | +.156 [-.020, +.378] 4/2 | +.203 [+.064, +.379] 6/1 | +.133 [+.078, +.191] 18/3 |
+| GRPO - haiku-5.5 | -.159 [-.342, -.028] 1/7 | -.042 [-.189, +.113] 3/5 | +.007 [-.037, +.050] 10/11 |
+| GRPO - bm25 (ΔF1) | +.089 [+.040, +.136] 7/1 | +.094 [+.052, +.142] 8/0 | +.134 [+.101, +.168] 23/1 |
+
+**Answer.** A 1.7B model trained on ~2.7k teacher turns goes from useless (.125) to beating
+a prompted 32B model of the same family on recall (significant on open and transfer, and
+at closed B=20), and matches its teacher's recall on the 24 out-of-field transfer reviews
+(+.007, 10/11) while staying below the teacher on the in-domain life-science set at B=40.
+Almost all of the gain comes from SFT; GRPO adds a small, consistent but not significant
+recall gain (+.01 to +.05; significant only at open B=20, +.047 [+.012, +.083]) and
+costs F1 (-.03 [-.055, -.003] closed B=40): with lambda=0.1 the cheapest way to raise reward
+was to include more (169 vs. 131 papers at B=40). The small model's precision (.11-.20)
+stays well below the prompted frontier models (.26-.44); it beats include-everything BM25
+on F1 everywhere but does not match haiku/sonnet as a screener. In citation-only mode the
+trained model is still poor (.133 GRPO vs .062 SFT at B=40; it stops with 72% of the budget
+left). Caveats: one training seed, 40 GRPO steps, n=8 evaluation reviews.
+
+## Q3 addendum: what the trained agent learned
+
+At B=40 hybrid, the trained 1.7B agent spends 97% of the budget on search, never expands
+citations (its haiku teacher spent 11% on citers), never spends budget on `read`
+(screening is free), and issues ~13.5 distinct queries over ~39 searches: it re-issues a
+query to page deeper (search returns only unexposed papers), i.e. it learned a
+"few queries, deep pages, screen everything" policy - effectively multi-query BM25 with a
+learned screener. Screen recall rose from .21 (prompted) to .67 (SFT) to .74 (GRPO).
 
 ## Reproducibility
 

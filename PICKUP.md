@@ -162,14 +162,25 @@ In flight when this was written: dense baselines (arrays 1917278/1917280), trans
 baselines (1917325), SFT 1917322 -> GRPO 1917323 -> eval 1917365
 (`farmshare/eval_small_models.sbatch`: base/SFT/GRPO on v3, transfer, open graph).
 
-## Next actions
+## State as of 2026-11-02
 
-1. When the chain finishes: check `checkpoints/qwen3-1.7b-grpo-v1/grpo_log.jsonl` (reward
-   trend, KL, parse failures); if GRPO diverges, evaluate SFT only and report it.
-2. Re-run `litsearch analyze` over all closed runs (add dense, small-model dirs) and open
-   runs; transfer analysis with `--data data/synergy-ext-transfer-v2`.
-3. Fill the Q2/Q4/dense sections of `docs/RESULTS.md`; per-split (test-only) table.
-4. Optional if budget remains: opus-5.5 hybrid B40 (~$7), a second seed for temperature>0.
+All planned experiments are done and written up in `docs/RESULTS.md` (Q1-Q4, grader
+question, dense retrieval, test-split table, failure analysis, training pass, replays,
+fresh-environment test). Analyses: `analysis/{closed,open,transfer}-r5` and
+`analysis/small-{closed,open,transfer}-r5` (md copies in the repo; figures on scratch).
+Checkpoints on scratch: `checkpoints/qwen3-1.7b-sft-v1`, `checkpoints/qwen3-1.7b-grpo-v1/final`
+(per-step adapters + `grpo_log.jsonl`). Eval runs: `runs/synergy-v3-small-trained-r4`,
+`runs/synergy-v3-open-small-r4`, `runs/ext-transfer-small-r4`. Dense runs:
+`runs/synergy-v3-dense-r3`, `runs/synergy-v3-open-dense-r3`. Transfer baselines:
+`runs/ext-transfer-baselines-r3`. Nodes barley-03/04 failed array tasks silently on
+2026-10-31; jobs since then use `--exclude=barley-03,barley-04`.
+
+## Next actions (optional; the completion standard is met)
+
+1. Opus-5.5 hybrid B40 (~$7 of the remaining ~$35 cap).
+2. An LLM agent with a SPECTER2 search tool (strongest retriever + agent screening).
+3. GRPO with a larger FP penalty (lambda 0.3) to recover precision; second training seed.
+4. Final report / slides from `docs/RESULTS.md`.
 
 ## Known design constraints and pitfalls
 
