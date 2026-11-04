@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import random
 import threading
 import time
 import urllib.error
@@ -54,7 +55,7 @@ class OpenAlexClient:
         base_url: str = "https://api.openalex.org",
         delay_seconds: float = 0.1,
         offline: bool = False,
-        retries: int = 5,
+        retries: int = 10,
     ) -> None:
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
@@ -97,9 +98,9 @@ class OpenAlexClient:
                     raise OpenAlexBudgetExhausted(body[:200]) from exc
                 if exc.code != 429 and exc.code < 500:
                     raise
-                time.sleep(float(exc.headers.get("Retry-After") or 2**attempt))
+                time.sleep(float(exc.headers.get("Retry-After") or min(60, 2**attempt)) + random.random())
             except (urllib.error.URLError, TimeoutError):
-                time.sleep(2**attempt)
+                time.sleep(min(60, 2**attempt) + random.random())
         else:
             raise RuntimeError(f"OpenAlex request failed after {self.retries} attempts")
         tmp = cache_path.with_suffix(f".{os.getpid()}.{threading.get_ident()}.tmp")

@@ -65,7 +65,10 @@ def score_review(store: CorpusStore, review_id: str, titles: list[str], threshol
     pool = [store.papers[i] for i in (review.candidate_ids or store.papers) if i in store.papers]
     gold_hit: set[str] = set()
     pool_hit: set[str] = set()
+    best_gold: list[float] = []  # per generated title, best similarity to any gold title
+    gold_titles = [store.papers[i].title for i in review.gold_ids if i in store.papers]
     for title in titles:
+        best_gold.append(max((title_match(title, g) for g in gold_titles), default=0.0))
         if len(_norm(title)) < 15:
             continue
         best, best_id = 0.0, None
@@ -86,6 +89,8 @@ def score_review(store: CorpusStore, review_id: str, titles: list[str], threshol
         "closed_book_recall": len(gold_hit) / max(1, len(review.gold_ids)),
         "closed_book_precision": len(gold_hit) / max(1, len(titles)),
         "gold_hit_ids": sorted(gold_hit),
+        "titles": titles,
+        "best_gold_similarity": [round(x, 3) for x in best_gold],
     }
 
 
@@ -109,6 +114,6 @@ def run_probe(config: dict[str, Any], output: Path) -> list[dict[str, Any]]:
             )
             row = {"model": agent["label"], **score_review(store, review_id, parse_titles(text))}
             rows.append(row)
-            print(json.dumps({k: v for k, v in row.items() if k != "gold_hit_ids"}), flush=True)
+            print(json.dumps({k: v for k, v in row.items() if k not in {"gold_hit_ids", "titles", "best_gold_similarity"}}), flush=True)
     output.write_text("\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
     return rows

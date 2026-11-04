@@ -161,6 +161,20 @@ def build_specter2_index(papers: Iterable[Paper], output: str | Path) -> dict[st
     return {"papers": len(paper_list), "dim": int(vectors.shape[1])}
 
 
+_QUERY_ENCODER = None
+_QUERY_ENCODER_LOCK = threading.Lock()
+
+
+def _shared_query_encoder():
+    """One query encoder per process; the global lock also serializes the ``adapters``
+    lazy import, which is not thread-safe."""
+    global _QUERY_ENCODER
+    with _QUERY_ENCODER_LOCK:
+        if _QUERY_ENCODER is None:
+            _QUERY_ENCODER = Specter2Encoder(SPECTER2_QUERY_ADAPTER)
+        return _QUERY_ENCODER
+
+
 class DenseRetriever:
     """Exact inner-product search over precomputed SPECTER2 vectors (no ANN index)."""
 
@@ -180,8 +194,9 @@ class DenseRetriever:
         with self._lock:
             if query not in self._query_cache:
                 if self._encoder is None:
-                    self._encoder = Specter2Encoder(SPECTER2_QUERY_ADAPTER)
-                self._query_cache[query] = self._encoder.encode([query])[0]
+                    self._encoder = _shared_query_encoder()
+                with _QUERY_ENCODER_LOCK:
+                    self._query_cache[query] = self._encoder.encode([query])[0]
             return self._query_cache[query]
 
     def search(self, query: str, k: int, allowed_ids: set[str] | None = None) -> list[str]:
