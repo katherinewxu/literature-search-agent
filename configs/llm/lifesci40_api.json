@@ -1,0 +1,67 @@
+{
+  "data_dir": "/scratch/users/kwx04/literature-search-agent/data/synergy-ext-train-v2",
+  "output_dir": "/scratch/users/kwx04/literature-search-agent/runs/ext-lifesci40-r5",
+  "index_scope": "pool",
+  "seed": 329,
+  "split": "train",
+  "budgets": [
+    40
+  ],
+  "agents": [
+    {
+      "name": "retrieval",
+      "label": "bm25",
+      "retriever": "bm25",
+      "modes": [
+        "keyword"
+      ]
+    },
+    {
+      "name": "llm",
+      "label": "haiku-5.5",
+      "model": "anthropic/claude-haiku-5.5",
+      "price_per_mtok": [
+        0.1,
+        0.5
+      ],
+      "temperature": 0.0,
+      "base_url": "https://openrouter.ai/api/v1",
+      "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+      "spend_ledger": "/scratch/users/kwx04/literature-search-agent/spend/openrouter.jsonl",
+      "spend_cap_usd": 60.0,
+      "max_tokens": 1500,
+      "modes": [
+        "hybrid"
+      ],
+      "extra_body": {
+        "reasoning": {
+          "enabled": false
+        }
+      },
+      "budgets": [
+        40
+      ]
+    },
+    {
+      "name": "llm",
+      "label": "sonnet-5.5",
+      "model": "anthropic/claude-sonnet-5.5",
+      "price_per_mtok": [
+        2.0,
+        10.0
+      ],
+      "temperature": 0.0,
+      "base_url": "https://openrouter.ai/api/v1",
+      "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+      "spend_ledger": "/scratch/users/kwx04/literature-search-agent/spend/openrouter.jsonl",
+      "spend_cap_usd": 60.0,
+      "max_tokens": 1500,
+      "modes": [
+        "hybrid"
+      ],
+      "budgets": [
+        40
+      ]
+    }
+  ]
+}
