@@ -1,0 +1,234 @@
+\documentclass{article} % For LaTeX2e
+\usepackage{iclr2025_conference,times}
+
+\input{math_commands.tex}
+
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{xcolor}
+
+\title{Learning to Search the Literature: \\
+Budgeted Citation-Graph Agents for Systematic Review \\
+\large Midway Report}
+
+\author{Katherine Xu \\
+Stanford University \\
+\texttt{kwx04@stanford.edu}}
+
+\iclrfinalcopy % Uncomment for camera-ready version, but NOT for submission.
+\begin{document}
+
+\maketitle
+
+\section{Research Questions}
+
+Systematic reviews depend on a search that finds every eligible study, and a missed study can
+change a review's conclusion. We study literature search as a budgeted sequential decision
+problem: given a review's question and eligibility criteria, an agent spends a fixed number of
+tool calls on keyword search, citation chasing and reading, and is scored on how many of the
+review's included studies it recovers. We ask four questions.
+\textbf{(Q1)} At equal budget, do prompted LLM agents beat retrieval and scripted snowballing
+baselines?
+\textbf{(Q2)} Can a small open model trained with supervised fine-tuning and reinforcement learning
+match or beat a much larger prompted model?
+\textbf{(Q3)} Which strategies emerge: how do agents divide their budget between search and
+citation chasing, and when do they stop?
+\textbf{(Q4)} Do the results transfer to reviews from other fields?
+A fifth question came from proposal feedback: is the citation graph itself limiting, and would
+open-web search help?
+
+\section{Environment \& Data}
+
+\textbf{Data.} Gold sets come from SYNERGY+ \citep{debruin2023synergy}: 72 published systematic
+reviews, each with the candidate papers its authors screened and the subset they included (the
+gold set $R$). Metadata, abstracts and the citation graph come from OpenAlex
+\citep{priem2022openalex} and are frozen into a local store, so episodes run offline and are
+reproducible. Splits are by review (Table~\ref{tab:splits}). The 8 evaluation reviews are fixed
+for all systems and themselves split train/dev/test; the only tuned baseline parameter was chosen
+on the train reviews. The 24 transfer reviews come from fields that do not appear in training.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}p{0.13\linewidth}p{0.2\linewidth}p{0.27\linewidth}p{0.30\linewidth}@{}}
+\toprule
+set & reviews & fields & used for \\
+\midrule
+evaluation & 8 (4 train / 2 dev / 2 test) & life science & all systems \\
+training & 40 & life science & teacher trajectories, SFT, GRPO; extra evaluation of prompted systems \\
+transfer & 24 & software eng., education, psychology, \dots & out-of-field evaluation \\
+\bottomrule
+\end{tabular}
+\caption{Review splits. The sets are disjoint. The proposal also listed CLEF TAR and CSMeD;
+SYNERGY+ alone provided enough reviews, so we did not add them.}
+\label{tab:splits}
+\end{table}
+
+\textbf{Environment.} Each episode is a partially observed decision process. The agent observes
+the review question, the eligibility criteria, its remaining budget $B$, the latest tool result,
+a frontier of the 50 most recently seen papers, and its included and excluded sets. Episodes start
+from five seed papers found by BM25 \citep{robertson2009bm25} on the question and criteria. Each
+turn the agent may screen any paper it has seen (include or exclude, free) and take one paid
+action:
+\texttt{search(query, k$\le$10)}, which costs 1 and returns the top unseen BM25 results (repeating
+a query pages deeper);
+\texttt{expand\_refs(p)} and \texttt{expand\_citers(p)}, which cost 1 per 10 results ($k\le 20$)
+and return a paper's references or citers;
+\texttt{read(p)}, which costs 1 and returns the abstract; and \texttt{stop}. Budgets are
+$B\in\{10, 20, 40\}$, and there are three tool sets: \emph{keyword} (search only),
+\emph{citation} (expansion only) and \emph{hybrid} (both). Once the budget is spent the agent may
+still screen what it has seen.
+
+\textbf{Leakage control.} The review paper, every paper that cites it, and every paper published
+after it are hidden from the agent. Gold labels are used only by the scorer, never in prompts,
+seeds or queries, and an automated leakage audit was run on the training data before any training.
+
+\textbf{Search universes.} To test whether the graph is limiting, the same agents run in three
+universes of increasing size:
+(i) the \emph{closed pool}, the papers the review authors screened;
+(ii) the \emph{open graph}, the pool plus up to 5{,}000 papers it cites, roughly doubling the
+distractors; and
+(iii) \emph{live web}, all of OpenAlex ($\sim$250M works), with search, references and citers
+served by the live API and cached for replay.
+
+\textbf{Metrics and success criteria.} The primary metric is recall $|S\cap R|/|R|$ of the
+included set $S$ at each budget. We also report precision and F1 of $S$, the area under the
+recall-versus-cost curve, and the action mix. Comparisons are paired by review, with 95\%
+bootstrap confidence intervals over reviews and win/loss counts. A system ``beats'' another only
+when the interval excludes zero. The training reward is
+$r = |S\cap R|/|R| - \lambda\,|S\setminus R|/|S|$ with $\lambda = 0.1$.
+
+\section{Methods}
+
+\textbf{Baselines.} (1) \emph{BM25} and (2) \emph{SPECTER2} \citep{singh2023scirepeval} rank the
+pool against the review text and include every result the budget pays for. This is the recall a
+retriever reaches without screening, at the lowest possible precision. (3) A scripted
+\emph{snowball} agent searches, screens by keyword overlap, and chases the references and citers
+of included papers \citep{wohlin2014snowballing}. (4) A \emph{random} traversal.
+
+\textbf{Prompted agents.} One prompt and one tool protocol for every model. Each turn the model
+returns JSON with screening decisions and exactly one action; invalid actions are charged and
+logged. Models: Claude Sonnet 5.5 and Haiku 5.5, and Qwen3-32B \citep{yang2025qwen3}, at
+temperature 0 via OpenRouter, with a hard spending cap enforced in code.
+
+\textbf{Trained agent (focus of the investigation).} Qwen3-1.7B with LoRA
+\citep{hu2022lora}, trained in two stages after a pre-registered gate was met: at least 200
+valid teacher trajectories (we had 360), a passing leakage audit, and a one-GPU smoke test.
+\emph{SFT}: rejection sampling keeps the better half (by reward) of Haiku 5.5 trajectories on the
+40 training reviews, giving 2{,}702 turns; 337 steps on one L40S.
+\emph{GRPO} \citep{shao2024deepseekmath}: starting from the SFT adapter, groups of 8 rollouts
+per task, KL penalty to SFT ($\beta=0.02$), 40 steps at $B=20$ over all three tool sets.
+Rollouts and evaluation are served with vLLM \citep{kwon2023vllm}. Both stages were repeated
+with a second seed. The open question for the rest of the quarter is what RL adds beyond
+imitation, and whether a trained policy learns to use citation tools at all.
+
+\section{Summary of Progress}
+
+\textbf{Done.}
+\begin{itemize}
+\item The environment, all baselines, the prompted agents and the training pipeline are
+  implemented and tested (47 unit tests, including leakage and cost-accounting tests).
+\item Every system has been run on the 8 evaluation reviews $\times$ 3 tool sets $\times$ 3
+  budgets, in both the closed pool and the open graph, and on the 24 transfer reviews. The
+  prompted systems were also run on the 40 training reviews, so their life-science comparisons
+  rest on 48 reviews.
+\item Robustness checks:
+  \begin{itemize}
+  \item three temperature-0.7 repeats for the API models;
+  \item a closed-book memorization probe, with all systems rescored after removing every gold
+    paper any model could name from memory;
+  \item a second training seed;
+  \item an agent that uses SPECTER2 as its search tool.
+  \end{itemize}
+\item A step-by-step HTML replay of episodes, for the demo.
+\end{itemize}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig1_recall_vs_budget.png}
+\caption{Recall by budget with hybrid tools, mean over the 8 evaluation reviews. Left: closed
+pool. Right: open graph. Dashed lines are retrieval baselines that include everything they
+see.}
+\label{fig:budget}
+\end{figure}
+
+\textbf{Preliminary results.} Recall at $B=40$ with hybrid tools; brackets are 95\% CIs of the
+paired difference.
+
+\begin{itemize}
+\item \textbf{Q1.} Sonnet beats BM25 by $+.152$ $[+.07, +.23]$ on 48 life-science reviews and by
+  $+.087$ $[+.01, +.16]$ on the 24 transfer reviews. Its precision is about 8$\times$ higher (.42
+  vs.\ .05).
+  \begin{itemize}
+  \item The scripted snowball loses to Sonnet on 8 of 8 reviews at every budget.
+  \item Exhaustive SPECTER2 is the strongest baseline: its recall ties Sonnet's in the closed
+    pool ($+.031$ $[-.05, +.12]$), but its precision is only .06.
+  \end{itemize}
+\item \textbf{Q2.} SFT moves the 1.7B model from .13 to .43 recall (closed pool); no review
+  gets worse.
+  \begin{itemize}
+  \item The trained model beats prompted Qwen3-32B by $+.133$ $[+.08, +.19]$ on transfer.
+  \item It matches its Haiku teacher out of field ($+.007$), but trails it in field ($-.159$).
+  \item GRPO adds $+.01$ to $+.07$ over SFT in all six seed $\times$ condition cells. Seed-to-seed
+    variation is about as large.
+  \end{itemize}
+\item \textbf{Q3.} Given both tools, frontier agents spend 80--90\% of the budget on new
+  queries and almost none on citation chasing; the trained model re-pages a dozen queries.
+  With citation tools only, every model stops early (Sonnet leaves half of $B=40$ unused).
+\item \textbf{Graph question.} Opening the graph lowers every system's recall (Sonnet
+  .67$\to$.62, BM25 .52$\to$.40), although 77--100\% of gold lies within three hops of the
+  seeds. The budget and the off-topic papers it must pay for limit the agents, not graph
+  connectivity.
+\item \textbf{Checks.} Removing memorized gold (7\% of closed-pool gold) changes no system's
+  recall by more than .02.
+\end{itemize}
+
+\textbf{Still to do.}
+\begin{itemize}
+\item Finish the live-web condition (about half of its episodes are done).
+\item Hand-label a sample of ``false positives'' to estimate how often agents find eligible
+  studies missing from the gold set, as proposed.
+\item Write a fuller error analysis by failure type: premature stopping, reachable but not
+  reached, screened out, missing abstract.
+\item Write the related-work section, the live demo, and a README quick-start that runs one
+  episode on a small subgraph with the released checkpoint.
+\item Try the refutation-reward variant if time allows (stretch goal).
+\end{itemize}
+
+\textbf{Obstacles and concerns.}
+\begin{itemize}
+\item \textbf{OpenAlex request limits.} The key allows about 1{,}000 searches a day, so the
+  live-web runs are paced across days.
+\item \textbf{API spending.} \$50 of the \$60 project cap is spent, leaving little room for new
+  frontier-model runs.
+\item \textbf{Small in-field test set for the trained model.} Its 40 training reviews cannot be
+  reused, so its in-field claims rest on 8 reviews. Its transfer claims rest on 24.
+\item \textbf{Training variance.} Two seeds differ by up to .07 recall, as much as the GRPO
+  effect, so ranking training recipes will need more seeds.
+\item \textbf{Missing abstracts.} About a quarter of gold papers lack an OpenAlex abstract,
+  which caps screening accuracy for every system.
+\end{itemize}
+
+\bibliography{references}
+\bibliographystyle{iclr2025_conference}
+
+\appendix
+\section{AI-Use Disclosure Statement}
+
+\textcolor{red}{[DRAFT: Katherine, check this against what you actually did and edit before
+submitting.]}
+\textbf{Ideation.} The research questions and formulation come from my proposal, written by me
+with the limited assistance described in its own disclosure.
+\textbf{Code and experiments.} I used Claude Code (Anthropic), an AI coding agent, extensively.
+Under my direction it wrote most of the implementation: environment, baselines, LLM agent,
+training scripts, analysis scripts and tests. It also ran the experiments on Stanford FarmShare
+and computed the analyses and figures. I set the research questions, the evaluation protocol,
+the pre-registered training gate and the spending limits, and I reviewed the results.
+\textbf{Writing.} Claude Code drafted this report from the experiment logs. I revised it and am
+responsible for every claim in it. The LLM agents studied in this project (Claude Sonnet 5.5,
+Claude Haiku 5.5, Qwen3) are the objects of study, not authors.
+
+\end{document}
