@@ -42,6 +42,29 @@ litsearch demo build --trace runs/fixture.json --output runs/fixture.html
 Open `runs/fixture.html` in any browser. It does not load a server, CDN, model, or
 external JavaScript.
 
+### Run the LLM agent on one example
+
+Any OpenAI-compatible endpoint works. With OpenRouter (one fixture episode costs well under $0.01):
+
+```bash
+export MODEL_API_BASE=https://openrouter.ai/api/v1
+export MODEL_API_KEY=...            # your key; it is sent only to MODEL_API_BASE and never logged
+litsearch run \
+  --data artifacts/fixture \
+  --review fixture_depression \
+  --agent prompted \
+  --model anthropic/claude-haiku-5.5 \
+  --mode hybrid \
+  --budget 20 \
+  --output runs/fixture_llm.json
+litsearch report --run-dir runs                       # recall / precision / F1 table
+litsearch demo build --trace runs/fixture_llm.json --output runs/fixture_llm.html
+```
+
+The full evaluation (72 SYNERGY+ reviews) is built and run with the data, matrix and
+FarmShare instructions below. Every reported number, with the run directory it came
+from, is in `docs/RESULTS.md`.
+
 Run the test suite without installing pytest:
 
 ```bash
