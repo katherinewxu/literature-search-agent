@@ -37,6 +37,7 @@ def load_runs(*dirs: str) -> list[dict]:
                     "pred": set(run["predictions"]),
                     "recall": run["metrics"]["recall"],
                     "f1": run["metrics"]["f1"],
+                    "precision": run["metrics"]["precision"],
                     "data_dir": run["matrix"]["data_dir"],
                 }
             )
