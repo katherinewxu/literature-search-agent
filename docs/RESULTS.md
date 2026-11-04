@@ -172,13 +172,58 @@ transfer reviews have very sparse citation neighborhoods (Kapuka 0% of gold with
 Attai 34%, Harms 25%) and about half of missed gold lacks an abstract (sonnet 450/963, bm25 548/1117). Agents also stop earlier
 here (haiku leaves 25% of B=40 unused; 42% of episodes stop with >=25% left).
 
+## Larger evaluation: 40 more life-science reviews
+
+All 72 SYNERGY+ reviews are already used (8 evaluation, 40 training, 24 transfer), so the
+evaluation set cannot grow with untouched reviews. The 40 training reviews were used only to
+train the 1.7B model (and as the Haiku teacher's T=0.7 trajectories), so the *prompted*
+systems and BM25 can be scored on them without contamination (`runs/ext-lifesci40-r5`,
+B=40, hybrid, T=0; the trained models are not evaluated here).
+
+| system | recall | F1 |
+|---|---|---|
+| bm25 (include all) | .405 | .10 |
+| haiku-5.5 | .493 | .35 |
+| sonnet-5.5 | .558 | .43 |
+
+| paired difference (B=40) | 40 new reviews | pooled 48 life-science reviews |
+|---|---|---|
+| sonnet − BM25 | +.154 [+.059, +.248] | +.152 [+.071, +.233] |
+| haiku − BM25 | +.088 [−.010, +.183] | +.090 [+.006, +.173] |
+| sonnet − haiku | +.066 [+.026, +.106] | +.061 [+.026, +.099] |
+
+On 48 reviews every gap that was positive-but-uncertain on the original 8 becomes
+significant, with similar magnitudes (sonnet − BM25 was +.142 on 8 reviews). Together with the
+24 transfer reviews, the prompted-agent conclusions now rest on 72 reviews.
+
 ## Dense retrieval (SPECTER2)
 
 See the Q1 caveat. SPECTER2 is the strongest non-LLM baseline in every condition
 (closed .635, open .528 at B=40), beats BM25 by +.110 [+.026, +.217] at B=20 (5/1), and
 misses fewer abstract-less gold (24 vs. 43 missed at B=40), consistent with title-only
 embeddings carrying more signal than title-only BM25. It does not help the scripted snowball.
-An LLM agent with a dense search tool was not run (budget); it is the obvious next system.
+
+**LLM agent with SPECTER2 as its search tool** (`runs/synergy-v3{,-open}-api-dense-r5`;
+same prompt and protocol, only `search` is backed by SPECTER2 instead of BM25). Recall (F1):
+
+| system | closed B=20 | closed B=40 | open B=20 | open B=40 |
+|---|---|---|---|---|
+| haiku-5.5, BM25 tool | .432 (.32) | .626 (.39) | .450 (.36) | .499 (.33) |
+| haiku-5.5, SPECTER2 tool | .365 (.32) | .523 (.33) | .397 (.31) | .488 (.30) |
+| sonnet-5.5, BM25 tool | .488 (.42) | .666 (.49) | .493 (.44) | .619 (.43) |
+| sonnet-5.5, SPECTER2 tool | – | .615 (.49) | – | .628 (.48) |
+| specter2 exhaustive (no LLM) | .469 (.13) | .635 (.11) | .353 (.10) | .528 (.08) |
+
+A better retriever does not make a better agent. On the closed pool the dense tool *hurts*
+both models at B=40 (haiku −.103 [−.181, −.037], sonnet −.051 [−.093, −.004]); on the open
+graph it is a tie (haiku −.012, sonnet +.009; sonnet F1 +.051 [−.007, +.106]). The agents
+write short keyword queries and re-page them, which suits a lexical engine; SPECTER2 is
+tuned for paper-to-paper similarity, so short keyword queries map to diffuse neighbourhoods
+(exhaustive SPECTER2 search with the full review text as query is the strong baseline, not
+SPECTER2 with agent queries). Versus exhaustive SPECTER2, the dense-tool Sonnet ties on recall
+in the closed pool (−.020 [−.105, +.084]) and wins on the open graph (+.100 [+.020, +.183]),
+with F1 +.38 to +.40 in both. So the LLM's value over dense retrieval is mostly screening
+(precision) plus, in the larger open graph, recall.
 
 ## Q2. Small trained agent vs. large prompted agents
 
@@ -226,7 +271,26 @@ was to include more (169 vs. 131 papers at B=40). The small model's precision (.
 stays well below the prompted frontier models (.26-.44); it beats include-everything BM25
 on F1 everywhere but does not match haiku/sonnet as a screener. In citation-only mode the
 trained model is still poor (.133 GRPO vs .062 SFT at B=40; it stops with 72% of the budget
-left). Caveats: one training seed, 40 GRPO steps, n=8 evaluation reviews.
+left). Caveats: 40 GRPO steps, n=8 evaluation reviews.
+
+**Second training seed.** SFT and GRPO were rerun end to end with a different seed (4242:
+LoRA init, data order, rollout sampling; `configs/train/*_s2.json`, `runs/*-s2-r4`), with
+everything else identical. Hybrid recall at B=40:
+
+| | closed | open | transfer |
+|---|---|---|---|
+| SFT seed 1 / seed 2 | .433 / .492 | .449 / .364 | .459 / .480 |
+| GRPO seed 1 / seed 2 | .467 / .539 | .458 / .438 | .483 / .524 |
+| GRPO − SFT, seed 1 | +.034 [−.027, +.096] | +.009 [−.048, +.077] | +.025 [−.017, +.065] |
+| GRPO − SFT, seed 2 | +.047 [+.022, +.074] | +.074 [+.012, +.139] | +.044 [+.015, +.076] |
+
+GRPO − SFT at B=40 is positive in all six seed × condition cells and significant in the three
+seed-2 cells, so the GRPO gain is real but small (+.01 to +.07). The seed-to-seed difference
+between two GRPO models (closed +.072 [+.044, +.101], open −.020, transfer +.041) is as large
+as the GRPO effect itself: a single training run cannot rank two training recipes that differ
+by less than about .07 recall. At B=20 the sign is not stable (open seed 2: −.034). The main
+Q2 conclusions (SFT does almost all the work; trained 1.7B beats prompted 32B; matches the
+teacher out of field) hold for both seeds: seed-2 GRPO beats Haiku on transfer (.524 vs .477).
 
 ## Q3 addendum: what the trained agent learned
 
@@ -299,7 +363,9 @@ comparison should be read as a tie.
 
 ## Limitations
 
-- 8 evaluation reviews (2 test); CIs are wide and per-review heterogeneity is large.
+- The trained models are evaluated on 8 life-science reviews plus 24 transfer reviews
+  (their 40 training reviews cannot be reused); prompted systems are evaluated on 72.
+- Two training seeds; seed-to-seed variation (up to .07 recall) is as large as the GRPO effect.
 - Search cutoff = review publication date (SYNERGY has no search dates); this can only add
   non-gold distractors, never hide gold.
 - Candidate pools are the reviews' own search results, so the closed graph is easier than the
