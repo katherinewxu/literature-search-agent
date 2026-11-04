@@ -237,6 +237,58 @@ query to page deeper (search returns only unexposed papers), i.e. it learned a
 "few queries, deep pages, screen everything" policy - effectively multi-query BM25 with a
 learned screener. Screen recall rose from .21 (prompted) to .67 (SFT) to .74 (GRPO).
 
+## Robustness: sampling variance and memorization
+
+Full tables: `analysis/robust/robustness.md` (script `scripts/robustness.py`).
+
+**Sampling variance.** Every number above is a single temperature-0 episode per cell. To size
+the run-to-run noise, Haiku (hybrid, all budgets) and Sonnet (hybrid, B=40) were rerun three
+times at temperature 0.7 on the 8 closed-pool reviews (96 episodes).
+
+| agent | B | T=0 | T=0.7 repeats (mean over 8 reviews) | per-review SD |
+|---|---|---|---|---|
+| haiku-5.5 | 10 | .273 | .367 / .338 / .342 | .065 |
+| haiku-5.5 | 20 | .432 | .496 / .436 / .443 | .066 |
+| haiku-5.5 | 40 | .626 | .551 / .525 / .585 | .045 |
+| sonnet-5.5 | 40 | .666 | .637 / .655 / .654 | .016 |
+
+Sonnet is stable: three samples land within .02 of each other and of the T=0 run. Haiku moves
+by up to .06 between repeats, and its T=0 run at B=40 sits at the top of its sampled range (its
+B=10 run sits below it). So Haiku's single-run numbers carry about ±.05 of sampling noise,
+which is as large as several of the Sonnet−Haiku gaps reported above. Sonnet − Haiku at B=40
+is positive in all three repeats (+.086, +.129, +.069), with a bootstrap CI excluding zero in
+one of them; this matches the closed-pool T=0 conclusion (positive but not significant on 8
+reviews) and the transfer result (+.084 [+.045, +.128] on 24 reviews).
+
+**Memorization.** A closed-book probe (`litsearch probe-memory`) gives each model exactly the
+agent's starting text (review question and eligibility criteria), no tools, and asks it to list
+up to 50 included studies. Titles are matched to the review's candidate pool (normalized-title
+similarity ≥ .8; checked by hand: matches above .84 were all the same study).
+
+| model | closed pool (8 reviews): gold named / 341 | mean closed-book recall | transfer (24): gold named / 2233 | mean recall |
+|---|---|---|---|---|
+| sonnet-5.5 | 22 | .063 | 76 | .062 |
+| haiku-5.5 | 9 | .030 | 23 | .017 |
+| qwen3-32b | 0 | .000 | 8 | .006 |
+
+Memorization exists but is concentrated: Hall_2011 (software defect prediction, a heavily
+cited review) accounts for 15 of Sonnet's 22 closed-pool hits; six of eight reviews have 0–2.
+Sonnet's tool-based recall (.666) is ten times its closed-book recall. To test whether
+memorized papers drive the comparisons, every gold paper named from memory by *any* model was
+removed (25/341 closed, 87/2233 transfer) and all systems were rescored on the rest:
+
+| paired difference at B=40 | original | memorization-adjusted |
+|---|---|---|
+| closed: sonnet hybrid − BM25 | +.142 [+.051, +.242] | +.129 [+.049, +.215] |
+| closed: sonnet hybrid − SPECTER2 | +.031 [−.051, +.113] | +.012 [−.082, +.109] |
+| transfer: sonnet hybrid − BM25 | +.087 [+.013, +.158] | +.081 [+.006, +.154] |
+| transfer: sonnet − haiku (hybrid) | +.084 [+.045, +.128] | +.088 [+.048, +.133] |
+| transfer: GRPO 1.7B − qwen3-32b | +.133 [+.078, +.191] | +.134 [+.079, +.193] |
+
+Every system loses at most .02 recall, and no conclusion changes sign or significance. Sonnet's
+small edge over exhaustive SPECTER2 on the closed pool shrinks toward zero (+.012), so that
+comparison should be read as a tie.
+
 ## Reproducibility
 
 - Fresh-environment test (2026-10-31): clean Python 3.12 venv from a source copy,
@@ -253,7 +305,8 @@ learned screener. Screen recall rose from .21 (prompted) to .67 (SFT) to .74 (GR
 - Candidate pools are the reviews' own search results, so the closed graph is easier than the
   open literature; the open-graph condition partially relaxes this.
 - ~27% of papers have no abstract in OpenAlex; title-only screening is a real constraint.
-- Frontier models may have seen these published reviews in pretraining; queries and inclusions
-  could partly reflect memorization. The leakage filter removes the review and its citers from
-  the environment but cannot remove model knowledge.
+- Frontier models have seen some of these reviews in pretraining. The closed-book probe
+  bounds the effect (≤ 7% of gold nameable from memory; removing it changes no conclusion), but
+  memory can also shape queries in ways a title probe does not measure.
+- Main-table cells are single T=0 episodes; Haiku's sampled repeats vary by up to .06 recall.
 - Sonnet's mandatory reasoning differs from the other models' non-thinking mode.
