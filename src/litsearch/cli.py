@@ -110,6 +110,10 @@ def _parser() -> argparse.ArgumentParser:
     demo_build = demo_commands.add_parser("build")
     demo_build.add_argument("--trace", type=Path, required=True)
     demo_build.add_argument("--output", type=Path, required=True)
+    demo_build.add_argument("--data", type=Path, help="frozen store: adds titles and gold markers")
+    demo_build.add_argument("--estimates", type=Path, help="recall_estimates.jsonl: adds the agent's recall estimate")
+    demo_build.add_argument("--openalex-cache", type=Path, help="titles for live-web works outside the store")
+    demo_build.add_argument("--label")
 
     train_sft = commands.add_parser("train-sft")
     train_sft.add_argument("--config", type=Path, required=True)
@@ -330,7 +334,10 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "demo":
-        path = write_html_replay(args.trace, args.output)
+        path = write_html_replay(
+            args.trace, args.output, data_dir=args.data, estimates=args.estimates,
+            label=args.label, openalex_cache=args.openalex_cache,
+        )
         print(path)
         return 0
 
