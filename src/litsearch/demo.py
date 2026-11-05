@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import html
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -95,7 +96,6 @@ function curve(st){const W=760,H=200,L=40,B=26,T=12,x=c=>L+(W-L-10)*c/budget,y=r
  let g=`<line x1="${L}" y1="${y(0)}" x2="${W-10}" y2="${y(0)}" stroke="var(--rule)"/>`;
  for(const v of [0.25,0.5,0.75,1]){g+=`<line x1="${L}" y1="${y(v)}" x2="${W-10}" y2="${y(v)}" stroke="var(--rule)" stroke-dasharray="2 4"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--ink2)">${v.toFixed(2)}</text>`}
  for(const c of [0,budget/2,budget])g+=`<text x="${x(c)}" y="${H-8}" text-anchor="middle" font-size="11" fill="var(--ink2)">${c}</text>`;
- g+=`<text x="${W-10}" y="${H-8}" text-anchor="end" font-size="11" fill="var(--ink2)">charged calls</text>`;
  if(E&&+slider.value===steps.length){
   if(E.lower!=null)g+=`<rect x="${L}" y="${y(Math.min(1,E.hat??E.lower))}" width="${W-10-L}" height="${Math.max(0,y(E.lower)-y(Math.min(1,E.hat??E.lower)))}" fill="var(--est)" opacity=".10"/>`;
   for(const [v,lab,dash] of [[E.yield,'yield-curve estimate','6 4'],[E.hat,'sampled estimate',''],[E.lower,'95% lower bound','2 3']])
@@ -128,7 +128,7 @@ function render(){const n=+slider.value,st=stateAt(n);
   const added=s.screen.filter(x=>x.action.kind==='include').map(x=>x.action.paper_id);
   return `<div class="step kind-${esc(s.e.action.kind)} ${i===n-1?'current':''}"><div class="head"><span><b>${i+1}.</b> ${describe(s)}</span><span class="cost">cost ${s.e.charged_cost} · ${s.e.budget_after} left</span></div>
   ${added.length?`<div class="note" style="margin-top:4px">screened in from earlier results:</div>${paperList(added,inc,6)}`:''}
-  ${(s.e.result_ids||[]).length?`<div class="note" style="margin-top:4px">${s.e.result_ids.length} new papers returned:</div>${paperList(s.e.result_ids,new Set(),6)}`:''}
+  ${(s.e.result_ids||[]).length&&s.e.action.kind!=='read'?`<div class="note" style="margin-top:4px">${s.e.result_ids.length} new papers returned:</div>${paperList(s.e.result_ids,new Set(),6)}`:''}
   ${s.e.error?`<div class="note">${esc(s.e.error.message)}</div>`:''}</div>`}).reverse().join('')||'<p class="note">Seeds shown; press Next or Play.</p>'}
 let timer=null;
 const play=document.getElementById('play');
@@ -141,6 +141,11 @@ document.getElementById('next').onclick=()=>{slider.value=Math.min(steps.length,
 document.addEventListener('keydown',e=>{if(e.key==='ArrowRight')document.getElementById('next').click();if(e.key==='ArrowLeft')document.getElementById('prev').click();if(e.key===' '&&e.target===document.body){e.preventDefault();play.click()}});
 render();
 """
+
+
+def _clean(title: str) -> str:
+    """OpenAlex titles can carry JATS/HTML markup (e.g. <scp>, <i>); keep the text only."""
+    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", title or "")).strip()
 
 
 def build_html_replay(
@@ -165,7 +170,8 @@ def build_html_replay(
     est = None
     if estimate:
         est = {"hat": estimate.get("llm_hat"), "lower": estimate.get("llm_lower"), "yield": estimate.get("saturation")}
-    data = {"run": run, "papers": papers or {}, "estimate": est, "gold_count": gold_count or 0}
+    slim = {k: v for k, v in run.items() if k != "agent_turns"}
+    data = {"run": slim, "papers": papers or {}, "estimate": est, "gold_count": gold_count or 0}
     payload = json.dumps(data).replace("</", "<\\/")
     q = html.escape(question or episode.get("question", ""))
     c = html.escape(criteria or episode.get("eligibility_criteria", ""))
@@ -228,7 +234,7 @@ def write_html_replay(
         for paper_id in ids:
             paper = store.papers.get(paper_id)
             if paper:
-                papers[paper_id] = {"title": paper.title, "year": paper.publication_year, "gold": paper_id in review.gold_ids}
+                papers[paper_id] = {"title": _clean(paper.title), "year": paper.publication_year, "gold": paper_id in review.gold_ids}
             else:
                 missing.append(paper_id)
         if missing and openalex_cache:  # live-web runs: titles of works outside the frozen store
@@ -238,7 +244,7 @@ def write_html_replay(
             for start in range(0, len(missing), 50):
                 for work in client.works_batch(missing[start : start + 50], select="id,display_name,publication_year"):
                     wid = str(work.get("id", "")).rsplit("/", 1)[-1]
-                    papers[wid] = {"title": work.get("display_name") or wid, "year": work.get("publication_year"), "gold": False}
+                    papers[wid] = {"title": _clean(work.get("display_name") or wid), "year": work.get("publication_year"), "gold": False}
         gold_count = len(review.gold_ids)
     estimate = None
     if estimates:
