@@ -38,7 +38,8 @@ match or beat a much larger prompted model?
 citation chasing, and when do they stop?
 \textbf{(Q4)} Do the results transfer to reviews from other fields?
 A fifth question came from proposal feedback: is the citation graph itself limiting, and would
-open-web search help?
+open-web search help? A sixth emerged from the results: \textbf{(Q5)} can an agent tell how much
+it has missed, i.e.\ estimate its own recall when it stops?
 
 \section{Environment \& Data}
 
@@ -182,13 +183,26 @@ paired difference.
   .67$\to$.62, BM25 .52$\to$.40), although 77--100\% of gold lies within three hops of the
   seeds. The budget and the off-topic papers it must pay for limit the agents, not graph
   connectivity.
+\item \textbf{Live web.} On all of OpenAlex, Sonnet's recall falls from .67 to .32 and Haiku's
+  from .63 to .17. Raw OpenAlex search finds 1\% of gold, so the LLM's lead over include-all
+  retrieval grows from $+.14$ (closed) to $+.22$ (open graph) to $+.31$ (web).
+\item \textbf{Forced citation chasing.} Replacing every third action with expansion of a paper
+  the agent already included lowers recall (Haiku $-.097$ $[-.19, -.02]$ closed, $-.071$
+  $[-.12, -.03]$ on 24 transfer reviews; Sonnet $-.018$, n.s.). Unlike PaSa
+  \citep{he2025pasa}, citation hops are a poor use of budget for systematic-review search.
+\item \textbf{Q5.} End-of-episode recall estimates rank episodes ($r\approx .5$--$.7$) but are
+  inaccurate per episode (error $\approx .2$). An LLM screener cannot audit the agent: it accepts
+  92\% of gold but also 87\% of the agent's false inclusions.
 \item \textbf{Checks.} Removing memorized gold (7\% of closed-pool gold) changes no system's
   recall by more than .02.
 \end{itemize}
 
 \textbf{Still to do.}
 \begin{itemize}
-\item Finish the live-web condition (about half of its episodes are done).
+\item GRPO v2 (running): F$_2$ reward, turn-level credit from each call's marginal gold
+  gain with a redundancy penalty, in the spirit of PaSa's per-call reward \citep{he2025pasa}, mixed budgets, 120 steps,
+  two seeds plus an ablation without turn credit.
+\item Live web on the 24 transfer reviews (scheduled).
 \item Hand-label a sample of ``false positives'' to estimate how often agents find eligible
   studies missing from the gold set, as proposed.
 \item Write a fuller error analysis by failure type: premature stopping, reachable but not
