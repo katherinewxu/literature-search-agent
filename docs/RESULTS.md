@@ -106,8 +106,59 @@ Two pieces of evidence (`analysis/*/analysis.md`, reachability + open-graph runs
 graph connectivity: more graph means more paths to gold but more off-topic neighbors to
 pay for. A more general tool (search over a larger universe) helps only when paired with
 search; citation access alone is the weakest tool in every condition. The open graph is a
-bounded one-hop backward expansion (not forward citers, not full-web search), so the claim
-is about this regime; true web search is left as future work (see limitations).
+bounded one-hop backward expansion; the live-web condition below tests full-web search directly.
+
+### Live web search (all of OpenAlex, ~250M works)
+
+`runs/synergy-v3-web-r5` (104 episodes, 8 reviews; `litsearch.web`): the same agents, but
+`search` is OpenAlex's live relevance search and `expand_refs` / `expand_citers` return a
+work's full reference list / most-cited citers, all restricted to the review's cutoff date,
+with the review and its citers hidden. Found records are mapped back to the frozen store by
+DOI or title, so a gold paper found under another OpenAlex record still counts. Recall (paired
+difference web − closed pool, 95% CI):
+
+| system | B=10 | B=20 | B=40 | closed B=40 | open B=40 | web − closed, B=40 |
+|---|---|---|---|---|---|---|
+| sonnet-5.5 / hybrid | .215 | .295 | .324 | .666 | .619 | −.342 [−.476, −.217] |
+| haiku-5.5 / hybrid | .141 | .165 | .171 | .626 | .499 | −.455 [−.616, −.298] |
+| sonnet-5.5 / citation | – | – | .148 | .340 | .262 | −.192 [−.278, −.100] |
+| haiku-5.5 / citation | .050 | .087 | .108 | .139 | .037 | −.031 [−.186, +.157] |
+| OpenAlex search / BM25, include all | .010 | .010 | .010 | .524 | .396 | −.514 [−.718, −.312] |
+
+**Answer (literal).** Internet-scale search does not help a 40-call agent; it halves recall.
+Two things change with the universe size:
+1. *The value of the LLM grows.* Sonnet's lead over include-everything retrieval is +.14 on the
+   closed pool, +.22 on the open graph and +.31 on the web, where raw OpenAlex relevance search
+   finds almost nothing (1% recall: the top results for the review title are reviews, editorials
+   and off-topic hits). Sonnet's lead over Haiku also widens (+.04 closed → +.15 web): writing
+   good queries matters more when the index is large.
+2. *Citation chasing degrades least.* Citation-only agents lose little or nothing on the web
+   (Haiku .139 → .108, n.s.), because a paper's references and citers are the same set whatever
+   the universe; search-based agents lose the most.
+Closed-pool benchmarks (including ours) therefore overstate real-world recall by about 2×.
+
+### Forcing citation chasing (does the agent ignore a useful tool?)
+
+PaSa (He et al., 2025) loses 23–32 recall points without citation expansion, but our agents
+almost never expand. To test whether they are wrong, `litsearch.forced.ForcedExpansionAgent`
+replaces every third charged action with expansion (alternating citers/refs) of the most recent
+paper the agent itself included (`runs/*-forced-r5`). Paired difference forced − free, recall:
+
+| condition | haiku-5.5 | sonnet-5.5 |
+|---|---|---|
+| closed B=20 | −.044 [−.168, +.072] | – |
+| closed B=40 | −.097 [−.186, −.020] | −.018 [−.048, +.021] |
+| open B=40 | −.052 [−.163, +.043] | – |
+| transfer B=40 (24) | −.071 [−.116, −.025] | – |
+
+Forced chasing never helps and significantly hurts Haiku (F1 also drops on transfer, −.046).
+The agents are right: in systematic-review search, where gold studies are found by many
+different keyword queries, a citation hop from an included study yields fewer new eligible
+studies than another query. This matches the evidence from manual reviews that citation
+searching is a low-yield supplement (Rajit et al., 2025: median 36% recall from automated
+citation searching alone) and contrasts with PaSa's CS queries, whose targets cluster in
+reference lists.
+
 
 ## Q3. Emergent strategies (prompted agents; trained agent in Q3 addendum)
 
@@ -300,6 +351,39 @@ citations (its haiku teacher spent 11% on citers), never spends budget on `read`
 query to page deeper (search returns only unexposed papers), i.e. it learned a
 "few queries, deep pages, screen everything" policy - effectively multi-query BM25 with a
 learned screener. Screen recall rose from .21 (prompted) to .67 (SFT) to .74 (GRPO).
+
+## Can the agent tell how much it missed? (end-of-episode recall estimation)
+
+`litsearch.recall_estimation`, `scripts/recall_est.py`, `scripts/recall_calibrate.py`; tables in
+`analysis/robust/recall_{estimates,calibrated}.md`. After each B=40 hybrid episode (Sonnet,
+Haiku, trained 1.7B; 8 + 40 + 24 reviews) we estimate recall without gold:
+- *yield curve*: fit included(t) = A(1 − e^{−kt}) over charged cost, recall = included / A;
+- *sample*: screen the included set, 30 exposed-but-excluded and 80 never-seen papers from the
+  agent's universe; recall = found / (found + estimated missed), with a 95% Clopper–Pearson
+  lower bound. Screener = gold labels (isolates sampling error) or Haiku (deployable; $1.17).
+
+Pooled over the 96 evaluation episodes (8 + 24 reviews; true mean recall .53):
+
+| estimator | mean estimate | mean abs. error | corr. with true recall | lower bound holds | mean lower bound |
+|---|---|---|---|---|---|
+| yield curve | .525 | .232 | .51 | – | – |
+| sample, gold screener | .630 | .187 | .66 | 100% | ≈ .15 |
+| sample, Haiku screener | .254 | .278 | .66 | 98% | ≈ .15 |
+| sample, Haiku, calibrated on the 40 training reviews | .562 | .300 | .51 | 43–100% | – |
+
+**Answer: not yet, and the reason is informative.**
+1. Every estimator *ranks* episodes reasonably (r ≈ .5–.7), so an agent can tell a bad search
+   from a good one, but no estimator is accurate per episode (error ≈ .2).
+2. Valid bounds are too loose to use: with 80 samples from pools of thousands where 1–3% are
+   eligible, the 95% lower bound is ≈ .15 when true recall is ≈ .55.
+3. The LLM screener shares the agent's errors. Calibrated on the training reviews, Haiku says
+   "include" to 92% of gold but also to 87% of the agent's false inclusions (and 43% of the
+   papers the agent excluded). The agent's mistakes are exactly the papers an LLM finds
+   plausible, so an LLM cannot audit them, and a Rogan–Gladen correction becomes unstable
+   (bounds hold in only 43–90% of episodes).
+Certified stopping for search agents therefore needs a screener whose errors are independent
+of the agent's (human spot checks, or a differently trained classifier) and a much larger
+random sample than a 40-call budget implies.
 
 ## Robustness: sampling variance and memorization
 
