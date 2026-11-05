@@ -129,8 +129,7 @@ difference web − closed pool, 95% CI):
 Two things change with the universe size:
 1. *The value of the LLM grows.* Sonnet's lead over include-everything retrieval is +.14 on the
    closed pool, +.22 on the open graph and +.31 on the web, where raw OpenAlex relevance search
-   finds almost nothing (1% recall: the top results for the review title are reviews, editorials
-   and off-topic hits). Sonnet's lead over Haiku also widens (+.04 closed → +.15 web): writing
+   finds almost nothing (1% recall). Sonnet's lead over Haiku also widens (+.04 closed → +.15 web): writing
    good queries matters more when the index is large.
 2. *Citation chasing degrades least.* Citation-only agents lose little or nothing on the web
    (Haiku .139 → .108, n.s.), because a paper's references and citers are the same set whatever
@@ -152,9 +151,8 @@ paper the agent itself included (`runs/*-forced-r5`). Paired difference forced �
 | transfer B=40 (24) | −.071 [−.116, −.025] | – |
 
 Forced chasing never helps and significantly hurts Haiku (F1 also drops on transfer, −.046).
-The agents are right: in systematic-review search, where gold studies are found by many
-different keyword queries, a citation hop from an included study yields fewer new eligible
-studies than another query. This matches the evidence from manual reviews that citation
+The agents are right: here a citation hop from an included study yields fewer new eligible
+studies than another query does. This matches the evidence from manual reviews that citation
 searching is a low-yield supplement (Rajit et al., 2025: median 36% recall from automated
 citation searching alone) and contrasts with PaSa's CS queries, whose targets cluster in
 reference lists.
@@ -368,7 +366,7 @@ Pooled over the 96 evaluation episodes (8 + 24 reviews; true mean recall .53):
 |---|---|---|---|---|---|
 | yield curve | .525 | .232 | .51 | – | – |
 | sample, gold screener | .630 | .187 | .66 | 100% | ≈ .15 |
-| sample, Haiku screener | .254 | .278 | .66 | 98% | ≈ .15 |
+| sample, Haiku screener | .254 | .278 | .66 | 99% | ≈ .15 |
 | sample, Haiku, calibrated on the 40 training reviews | .562 | .300 | .51 | 43–100% | – |
 
 **Answer: not yet, and the reason is informative.**
