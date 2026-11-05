@@ -12,3 +12,4 @@ key_file="$HOME/.config/litsearch/openrouter.key"
 MODEL_API_KEY="$(tr -d '[:space:]' < "$key_file")"; export MODEL_API_KEY
 cd ~/literature-search-agent
 .venv/bin/python scripts/recall_est.py "${CONFIG:-configs/recall_est.json}" "${OUT:-analysis/recall-est}"
+.venv/bin/python scripts/recall_calibrate.py "${OUT:-analysis/recall-est}"

@@ -56,6 +56,7 @@ def main() -> None:
                 "oracle_hat": o["recall_hat"], "oracle_lower": o["recall_lower"],
                 "llm_hat": m["recall_hat"], "llm_lower": m["recall_lower"],
                 "sizes": m["sizes"], "llm_yes": m["screened_yes"], "true_missed": o["true_missed"],
+                "strata": m["strata"],
             }
 
         with ThreadPoolExecutor(max_workers=8) as pool:

@@ -101,9 +101,10 @@ def sample_estimate(
         return ids if len(ids) <= n else rng.sample(ids, n)
 
     s_ids, x_ids, u_ids = sample(sorted(included), max_included), sample(excluded, n_excluded), sample(unexposed, n_unexposed)
-    s_yes = len(screen(review_id, s_ids)) if s_ids else 0
-    x_yes = len(screen(review_id, x_ids)) if x_ids else 0
-    u_yes = len(screen(review_id, u_ids)) if u_ids else 0
+    s_set = screen(review_id, s_ids) if s_ids else set()
+    x_set = screen(review_id, x_ids) if x_ids else set()
+    u_set = screen(review_id, u_ids) if u_ids else set()
+    s_yes, x_yes, u_yes = len(s_set), len(x_set), len(u_set)
     p_s = s_yes / len(s_ids) if s_ids else 0.0
     p_x = x_yes / len(x_ids) if x_ids else 0.0
     p_u = u_yes / len(u_ids) if u_ids else 0.0
@@ -117,6 +118,15 @@ def sample_estimate(
         "sizes": {"included": len(included), "excluded": len(excluded), "unexposed": len(unexposed)},
         "screened_yes": {"included": [s_yes, len(s_ids)], "excluded": [x_yes, len(x_ids)], "unexposed": [u_yes, len(u_ids)]},
         "true_recall": len(included & gold) / max(1, len(gold)),
+        # Per-stratum sampled ids, screener decisions and gold, for calibrating the screener.
+        "strata": {
+            name: {"n_total": total_n, "sampled": ids, "yes": sorted(chosen), "gold": sorted(set(ids) & gold)}
+            for name, total_n, ids, chosen in (
+                ("included", len(included), s_ids, s_set),
+                ("excluded", len(excluded), x_ids, x_set),
+                ("unexposed", len(unexposed), u_ids, u_set),
+            )
+        },
         # What the agent could still find vs. what lies outside its universe (should be ~0 here).
         "true_missed": {"excluded": len((exposed - included) & gold), "unexposed": len((allowed - exposed) & gold)},
     }
