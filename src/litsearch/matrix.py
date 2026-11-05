@@ -25,13 +25,18 @@ def _make_agent(name: str, config: dict[str, Any], seed: int, backends: dict[str
     if name == "llm":
         from .llm import LLMSearchAgent
 
-        return LLMSearchAgent(
+        agent = LLMSearchAgent(
             backend=backends[config["label"]],
             name=config["label"],
             temperature=float(config.get("temperature", 0.0)),
             seed=seed if float(config.get("temperature", 0.0)) > 0 else None,
             record_turns=bool(config.get("record_turns", True)),
         )
+        if config.get("force_expand_every"):
+            from .forced import ForcedExpansionAgent
+
+            agent = ForcedExpansionAgent(agent, every=int(config["force_expand_every"]), name=config["label"])
+        return agent
     raise ValueError(f"unsupported matrix agent: {name}")
 
 

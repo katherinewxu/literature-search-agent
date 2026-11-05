@@ -1,0 +1,72 @@
+{
+  "screener": {
+    "model": "anthropic/claude-haiku-5.5",
+    "price_per_mtok": [
+      0.1,
+      0.5
+    ],
+    "temperature": 0.0,
+    "base_url": "https://openrouter.ai/api/v1",
+    "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+    "spend_ledger": "/scratch/users/kwx04/literature-search-agent/spend/openrouter.jsonl",
+    "spend_cap_usd": 60.0,
+    "max_tokens": 400,
+    "extra_body": {
+      "reasoning": {
+        "enabled": false
+      }
+    }
+  },
+  "n_unexposed": 80,
+  "n_excluded": 30,
+  "sets": [
+    {
+      "name": "life-science 8",
+      "runs": "synergy-v3-api-r4",
+      "agents": [
+        "sonnet-5.5",
+        "haiku-5.5"
+      ],
+      "mode": "hybrid",
+      "budget": 40
+    },
+    {
+      "name": "life-science 40",
+      "runs": "ext-lifesci40-r5",
+      "agents": [
+        "sonnet-5.5",
+        "haiku-5.5"
+      ],
+      "mode": "hybrid",
+      "budget": 40
+    },
+    {
+      "name": "transfer 24",
+      "runs": "ext-transfer-api-r4",
+      "agents": [
+        "sonnet-5.5",
+        "haiku-5.5"
+      ],
+      "mode": "hybrid",
+      "budget": 40
+    },
+    {
+      "name": "life-science 8",
+      "runs": "synergy-v3-small-trained-r4",
+      "agents": [
+        "qwen3-1.7b-grpo"
+      ],
+      "mode": "hybrid",
+      "budget": 40
+    },
+    {
+      "name": "transfer 24",
+      "runs": "ext-transfer-small-r4",
+      "agents": [
+        "qwen3-1.7b-grpo"
+      ],
+      "mode": "hybrid",
+      "budget": 40
+    }
+  ]
+}
