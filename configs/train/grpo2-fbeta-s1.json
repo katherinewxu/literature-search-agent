@@ -1,6 +1,6 @@
 {
   "model": "Qwen/Qwen3-1.7B",
-  "init_adapter": "/scratch/users/kwx04/literature-search-agent/checkpoints/qwen3-1.7b-sft",
+  "init_adapter": "/scratch/users/kwx04/literature-search-agent/checkpoints/qwen3-1.7b-sft-v1",
   "data_dir": "/scratch/users/kwx04/literature-search-agent/data/synergy-ext-train-v2",
   "audit_report": "/scratch/users/kwx04/literature-search-agent/data/synergy-ext-train-v2-audit.json",
   "output_dir": "/scratch/users/kwx04/literature-search-agent/checkpoints/grpo2-fbeta-s1",
