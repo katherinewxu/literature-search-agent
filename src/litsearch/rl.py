@@ -29,10 +29,82 @@ from .runner import run_episode, write_run
 from .store import CorpusStore
 
 
-def episode_reward(metrics: dict[str, Any], budget: int, *, lam: float = 0.1, cost_weight: float = 0.0) -> float:
+def episode_reward(
+    metrics: dict[str, Any],
+    budget: int,
+    *,
+    lam: float = 0.1,
+    cost_weight: float = 0.0,
+    kind: str = "recall_fp",
+    beta: float = 2.0,
+) -> float:
+    """Episode reward. ``recall_fp``: recall - lam * FP/|S| (v1). ``fbeta``: F-beta of the included set."""
     included = metrics["included_count"]
+    cost = cost_weight * metrics["charged_cost"] / budget
+    if kind == "fbeta":
+        p, r = metrics["precision"], metrics["recall"]
+        b2 = beta * beta
+        f = (1 + b2) * p * r / (b2 * p + r) if p + r > 0 else 0.0
+        return f - cost
     false_rate = (included - metrics["true_positives"]) / included if included else 0.0
-    return metrics["recall"] - lam * false_rate - cost_weight * metrics["charged_cost"] / budget
+    return metrics["recall"] - lam * false_rate - cost
+
+
+_SCREEN_KINDS = {"include", "exclude"}
+
+
+def turn_gains(
+    run: dict[str, Any],
+    gold: set[str],
+    *,
+    fp_weight: float = 0.5,
+    discovery_weight: float = 0.5,
+    redundancy_weight: float = 0.02,
+) -> list[float] | None:
+    """Per-turn marginal gain, aligned with ``run["agent_turns"]`` (StepSearch/PaSa-style shaping).
+
+    A turn is the screening events it emitted plus the one charged/NOOP/STOP action that ends it.
+    Gain = (new gold included - fp_weight * new non-gold included + discovery_weight * new gold
+    exposed) / |gold| - redundancy_weight * (fraction of returned papers already seen).
+    Returns None when trace and turns cannot be aligned (the caller then uses episode credit only).
+    """
+    if not gold:
+        return None
+    events = [e for e in run["trace"] if (e.get("action") or {}).get("kind") != "seed"]
+    seen: set[str] = set(run.get("seed_ids") or [])
+    included: set[str] = set()
+    gains: list[float] = []
+    current = 0.0
+    for event in events:
+        kind = (event.get("action") or {}).get("kind")
+        after = set(event.get("included_ids") or [])
+        added, removed = after - included, included - after
+        current += (len(added & gold) - len(removed & gold)) / len(gold)
+        current -= fp_weight * (len(added - gold) - len(removed - gold)) / len(gold)
+        included = after
+        if kind in _SCREEN_KINDS:
+            continue
+        result = list(event.get("result_ids") or [])
+        if result and kind != "read":
+            fresh = [i for i in result if i not in seen]
+            current += discovery_weight * len(set(fresh) & gold) / len(gold)
+            current -= redundancy_weight * (len(result) - len(fresh)) / len(result)
+        seen.update(result)
+        gains.append(current)
+        current = 0.0
+    if current and gains:  # trailing screening after the last action belongs to the last turn
+        gains[-1] += current
+    if len(gains) != len(run.get("agent_turns") or []):
+        return None
+    return gains
+
+
+def returns_to_go(gains: list[float]) -> list[float]:
+    out, total = [], 0.0
+    for gain in reversed(gains):
+        total += gain
+        out.append(total)
+    return out[::-1]
 
 
 # -- tokenization shared by SFT and GRPO -------------------------------------------
@@ -241,6 +313,10 @@ def train_grpo(config: dict[str, Any], base_url: str) -> dict[str, Any]:
     steps = int(config.get("steps", 40))
     lam = float(config.get("lambda", 0.1))
     cost_weight = float(config.get("cost_weight", 0.0))
+    reward_kind = config.get("reward", "recall_fp")
+    reward_beta = float(config.get("reward_beta", 2.0))
+    turn_weight = float(config.get("turn_credit_weight", 0.0))
+    shaping = config.get("turn_shaping", {})
     beta = float(config.get("kl_beta", 0.02))
     temperature = float(config.get("temperature", 1.0))
     max_length = int(config.get("max_length", 6144))
@@ -281,8 +357,13 @@ def train_grpo(config: dict[str, Any], base_url: str) -> dict[str, Any]:
             spec = EpisodeSpec(review.id, review.question, review.eligibility_criteria, budget, mode)
             agent = LLMSearchAgent(backend, name="grpo", temperature=temperature, seed=rng_seed + task_index * 1000 + member)
             run = run_episode(LiteratureSearchEnv(store, retriever, spec), agent)
-            run["reward"] = episode_reward(run["metrics"], budget, lam=lam, cost_weight=cost_weight)
+            run["reward"] = episode_reward(
+                run["metrics"], budget, lam=lam, cost_weight=cost_weight, kind=reward_kind, beta=reward_beta
+            )
             run["group"] = task_index
+            if turn_weight:
+                gains = turn_gains(run, set(review.gold_ids), **shaping)
+                run["turn_returns"] = returns_to_go(gains) if gains is not None else None
             return run
 
         rng_seed = rng.randrange(1 << 30)
@@ -302,12 +383,20 @@ def train_grpo(config: dict[str, Any], base_url: str) -> dict[str, Any]:
             if spread < 1e-6:
                 continue
             mean = statistics.fmean(rewards)
+            # Turn-level credit: z-score each turn's return-to-go over all turns in the group.
+            turn_values = [g for run in group for g in (run.get("turn_returns") or [])]
+            t_mean = statistics.fmean(turn_values) if turn_values else 0.0
+            t_spread = statistics.pstdev(turn_values) if len(turn_values) > 1 else 0.0
             for run in group:
                 advantage = (run["reward"] - mean) / (spread + 1e-4)
-                for turn in run["agent_turns"]:
+                returns = run.get("turn_returns")
+                for index, turn in enumerate(run["agent_turns"]):
+                    turn_advantage = advantage
+                    if turn_weight and returns and t_spread > 1e-6:
+                        turn_advantage += turn_weight * (returns[index] - t_mean) / t_spread
                     encoded = encode_turn(tokenizer, turn["messages"], turn["response"], max_length)
                     if encoded:
-                        samples.append((advantage, encoded))
+                        samples.append((turn_advantage, encoded))
         total_tokens = sum(sum(1 for t in labels if t != -100) for _, (_, labels) in samples) or 1
         model.train()
         optimizer.zero_grad(set_to_none=True)
