@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Budgeted literature-search demo</title>
+<style>
+:root{--bg:#f6f7f9;--panel:#fff;--ink:#16202a;--ink2:#566170;--rule:#dde1e6;--accent:#2a78d6;--gold:#0f8a5f;--est:#eb6834}
+@media (prefers-color-scheme:dark){:root{--bg:#111418;--panel:#181c21;--ink:#e6e9ed;--ink2:#9aa5b1;--rule:#2a3038;--accent:#5a9be6;--gold:#3cc48f;--est:#f08a5d}}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:980px;margin:0 auto;padding:32px max(16px,3vw) 48px}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:600}
+h1{font-size:28px;line-height:1.2;margin:6px 0 8px;text-wrap:balance}
+p{max-width:68ch;color:var(--ink2)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:22px}
+a.card{display:block;text-decoration:none;color:inherit;background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:16px}
+a.card:hover,a.card:focus-visible{border-color:var(--accent);outline:none}
+.k{font-size:12px;color:var(--ink2);text-transform:uppercase;letter-spacing:.06em}
+.num{font-size:34px;font-weight:650;font-variant-numeric:tabular-nums;color:var(--gold);line-height:1.1;margin:8px 0 2px}
+.est{color:var(--est);font-size:14px;font-variant-numeric:tabular-nums}
+h2{font-size:17px;margin:4px 0}
+table{border-collapse:collapse;margin-top:26px;font-variant-numeric:tabular-nums;font-size:15px}
+th,td{padding:6px 18px 6px 0;text-align:left;border-bottom:1px solid var(--rule)}th{color:var(--ink2);font-weight:600}
+</style></head><body><main>
+<div class="eyebrow">CS329Z · midpoint demo</div>
+<h1>Same review, same agent, three tool settings</h1>
+<p>Review: <b>Meijboom 2021</b> (systematic review with 37 included studies). Agent: Claude Sonnet 5.5 with a
+40-call budget. Each card opens a step-by-step replay: every query, every paper returned (green dot = a study the
+review included), and recall rising as budget is spent.</p>
+<div class="grid">
+<a class="card" href="1_closed_hybrid.html"><div class="k">1 · closed pool · search + citations</div><div class="num">0.89</div>
+<h2>Query reformulation works</h2><div class="est">Agent's own estimate at stop: 0.44 (95% lower bound 0.31) · yield curve 0.84</div></a>
+<a class="card" href="2_closed_citation.html"><div class="k">2 · closed pool · citations only</div><div class="num">0.32</div>
+<h2>Citation chasing alone stalls</h2><div class="est">Same universe, no search tool</div></a>
+<a class="card" href="3_web_hybrid.html"><div class="k">3 · live OpenAlex · search + citations</div><div class="num">0.38</div>
+<h2>The open web halves recall</h2><div class="est">~250M works instead of the review's candidates</div></a>
+</div>
+<table><tr><th>Recall at 40 calls, mean over 8 reviews</th><th>closed pool</th><th>live web</th></tr>
+<tr><td>Sonnet 5.5 agent</td><td>.666</td><td>.324</td></tr>
+<tr><td>Haiku 5.5 agent</td><td>.626</td><td>.171</td></tr>
+<tr><td>Search engine, include everything</td><td>.524</td><td>.010</td></tr></table>
+</main></body></html>
