@@ -26,8 +26,11 @@ On 72 published reviews from SYNERGY+ we find:
 3. **The citation graph is not what limits the agents; budget and distractors are.** Most gold is within three
    citation hops of the starting papers. Enlarging the graph, or searching all of OpenAlex
    live, adds paths to the gold but also adds off-topic papers that cost budget, and recall
-   falls.
-4. **A 1.7B model trained on about 2,700 teacher turns** goes from useless (.11–.13 recall) to beating
+   falls: Sonnet drops from .67 to .32 on the live web. Forcing citation chasing lowers recall
+   or leaves it flat, and the LLM's lead over raw search grows as the universe grows.
+4. **Agents cannot yet tell how much they missed.** Recall estimates rank searches but are off
+   by about .2 per episode, and an LLM checker shares the agent's mistakes.
+5. **A 1.7B model trained on about 2,700 teacher turns** goes from useless (.11–.13 recall) to beating
    a prompted model of the same family 19× its size (Qwen3-32B), and it matches its teacher (Haiku 5.5) on
    24 reviews from other fields. Supervised fine-tuning does almost all of the work.
    Reinforcement learning (GRPO) adds a small gain that appears with both training seeds.
@@ -166,7 +169,59 @@ chasing.
   .52 → .40, Haiku .63 → .50, Sonnet .67 → .62, with citation-only agents hit hardest. More
   graph means more paths to gold, and also more off-topic neighbors to pay for.
 
-<!-- WEB-SECTION -->
+**Does searching the whole web help?** No: at this budget it halves recall. We ran the same
+agents on all of OpenAlex (about 250M works), with live search and live references and citers.
+
+![Search universe](figures/fig5_web.png)
+
+*Figure 5. Recall at B=40, 8 evaluation reviews, in three search universes of increasing size.*
+
+| recall at B=40 | closed pool | open graph | live web |
+|---|---|---|---|
+| Sonnet 5.5 | .666 | .619 | .324 |
+| Haiku 5.5 | .626 | .499 | .171 |
+| Search engine, include everything | .524 | .396 | .010 |
+
+Two things follow.
+- **The LLM's value grows with the universe.** Sonnet's lead over include-everything retrieval
+  is +.14 in the closed pool, +.22 on the open graph and +.31 on the web, where raw OpenAlex
+  search finds 1% of the gold. Sonnet's lead over Haiku also widens, from +.04 to +.15.
+- **Closed-pool benchmarks flatter every system.** Sonnet's real-web recall is about half its
+  closed-pool recall. The 24 transfer reviews replicate this: Haiku falls from .48 to .10, and
+  raw search reaches .02.
+
+**Are the agents wrong to skip citation chasing?** PaSa (He et al., 2025) loses 23–32 recall
+points without citation expansion, so we tested this directly. We replaced every third paid
+action with expansion of a paper the agent had already included.
+
+| forced − free recall | Haiku 5.5 | Sonnet 5.5 | trained 1.7B |
+|---|---|---|---|
+| closed, B=20 | −.044 [−.17, +.07] | – | −.064 [−.12, −.01] |
+| closed, B=40 | −.097 [−.19, −.02] | −.018 [−.05, +.02] | −.003 [−.04, +.04] |
+| open, B=40 | −.052 [−.16, +.04] | – | – |
+| transfer, B=40 | −.071 [−.12, −.03] | – | – |
+
+Forced chasing never helps and sometimes hurts, so the agents are right. For systematic-review
+search, another query is a better use of a call than a citation hop.
+
+**Can the agent tell how much it missed?** Reviewers need to know when a search is done. After
+each B=40 episode we estimated recall without gold labels, in two ways: a yield curve fitted to
+the agent's inclusions, and a screener checking the included set plus random samples of the
+papers it rejected and never saw. On 96 evaluation episodes, with true mean recall .53:
+
+| estimator | mean estimate | mean abs. error | corr. with true recall | 95% lower bound holds |
+|---|---|---|---|---|
+| Yield curve | .525 | .232 | .51 | – |
+| Sample, gold-label screener | .630 | .187 | .66 | 100% |
+| Sample, Haiku screener | .254 | .278 | .66 | 99% |
+
+Estimates rank good and bad searches but are off by about .2 per episode. Valid lower bounds
+are too loose to use: about .15 when true recall is about .55. The deeper problem is that the
+LLM checker shares the agent's mistakes. Haiku accepts 92% of gold papers, but also 87% of the
+papers the agents wrongly included. Correcting for this using rates measured on the training
+reviews made the estimates unstable (the lower bound then held in only 43–100% of episodes,
+depending on the set). Certified stopping would need a checker whose errors are independent of
+the agent's, such as human spot checks, and a much larger random sample.
 
 ## 5. Training a small agent
 

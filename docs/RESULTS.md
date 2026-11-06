@@ -136,6 +136,11 @@ Two things change with the universe size:
    the universe; search-based agents lose the most.
 Closed-pool benchmarks (including ours) therefore overstate real-world recall by about 2×.
 
+The transfer set replicates this (`runs/ext-transfer-web-r5`, 24 reviews, 96 episodes): Haiku
+hybrid falls from .477 to .098 at B=40 (−.379 [−.465, −.301]) and from .370 to .084 at B=20;
+raw OpenAlex search gets .018 at both budgets. Haiku − OpenAlex search on the web is
++.080 [+.056, +.105].
+
 ### Forcing citation chasing (does the agent ignore a useful tool?)
 
 PaSa (He et al., 2025) loses 23–32 recall points without citation expansion, but our agents
@@ -149,6 +154,9 @@ paper the agent itself included (`runs/*-forced-r5`). Paired difference forced �
 | closed B=40 | −.097 [−.186, −.020] | −.018 [−.048, +.021] |
 | open B=40 | −.052 [−.163, +.043] | – |
 | transfer B=40 (24) | −.071 [−.116, −.025] | – |
+
+The trained 1.7B agent agrees: −.064 [−.116, −.007] at closed B=20 and −.003 [−.040, +.039] at
+closed B=40 (`runs/synergy-v3-small-forced-r5`).
 
 Forced chasing never helps and significantly hurts Haiku (F1 also drops on transfer, −.046).
 The agents are right: here a citation hop from an included study yields fewer new eligible
