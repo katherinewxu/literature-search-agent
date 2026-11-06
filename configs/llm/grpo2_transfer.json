@@ -1,0 +1,58 @@
+{
+  "data_dir": "/scratch/users/kwx04/literature-search-agent/data/synergy-ext-transfer-v2",
+  "output_dir": "/scratch/users/kwx04/literature-search-agent/runs/ext-transfer-grpo2-r5",
+  "split": "transfer",
+  "budgets": [
+    20,
+    40
+  ],
+  "agents": [
+    {
+      "name": "llm",
+      "label": "grpo2-turn-s1",
+      "model": "grpo2-turn-s1",
+      "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+      "extra_body": {
+        "chat_template_kwargs": {
+          "enable_thinking": false
+        }
+      },
+      "temperature": 0.0,
+      "modes": [
+        "hybrid"
+      ]
+    },
+    {
+      "name": "llm",
+      "label": "grpo2-turn-s2",
+      "model": "grpo2-turn-s2",
+      "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+      "extra_body": {
+        "chat_template_kwargs": {
+          "enable_thinking": false
+        }
+      },
+      "temperature": 0.0,
+      "modes": [
+        "hybrid"
+      ]
+    },
+    {
+      "name": "llm",
+      "label": "grpo2-fbeta-s1",
+      "model": "grpo2-fbeta-s1",
+      "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+      "extra_body": {
+        "chat_template_kwargs": {
+          "enable_thinking": false
+        }
+      },
+      "temperature": 0.0,
+      "modes": [
+        "hybrid"
+      ]
+    }
+  ],
+  "index_scope": "pool",
+  "seed": 329
+}
