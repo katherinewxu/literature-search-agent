@@ -269,6 +269,12 @@ for both training seeds. Dotted lines mark the prompted Haiku teacher and Qwen3-
 Its precision (.11–.23) is far above include-everything retrieval and far below the
 frontier models (.3–.45).
 
+**A second training recipe (evaluation pending).** GRPO v2 uses an F2 reward, turn-level credit
+from each call's marginal gold gain, a redundancy penalty, mixed budgets and 120 steps, with two
+seeds plus an ablation without turn credit. Training has finished; the held-out evaluation has not.
+We fixed the success criteria in advance: precision of at least .25 with recall within .02 of the
+current policy, and a GRPO gain larger than seed noise.
+
 ## 6. Limitations
 
 - The trained model is evaluated on 32 reviews: its 40 training reviews cannot be reused.

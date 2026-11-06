@@ -1,5 +1,25 @@
 # Codex continuation handoff
 
+## Latest status (2026-11-05, read this first)
+
+Midway report and demo video are due Fri 2026-11-06, 11:59pm PT. Public repo:
+https://github.com/katherinewxu/literature-search-agent
+
+- Midway report: `docs/midway/` (Overleaf: `docs/midway-overleaf.zip`, preview:
+  `docs/midway-preview.pdf`). Submittable as is; lists the GRPO v2 evaluation as still to do.
+- Results: `docs/RESULTS.md`; long report: `docs/REPORT.md`, published at
+  https://claude.ai/artifact/VXJvpN9pPnQwyUpmeKVmkv. Demo: `demo/v2/` (script `RECORDING.md`).
+- Pending on FarmShare: job 1936497 evaluates the GRPO v2 final adapters; output goes to
+  `runs/{synergy-v3-grpo2-r5,synergy-v3-open-grpo2-r5,ext-transfer-grpo2-r5}`. Job 1937335 runs
+  afterwards and writes `analysis/robust/grpo2.md` under the scratch root (`scripts/grpo2_tables.py`).
+- When done: copy that table's outcome into RESULTS, REPORT and the midway report, whichever way
+  it comes out, against the pre-stated criteria: precision >= .25 with recall within .02 of the
+  v1 GRPO policy, and a GRPO gain beyond seed noise. Then rebuild the zip and preview, and
+  republish the long report.
+- Needs the user: AI-use disclosure review (delete the red DRAFT line), check six added references
+  (LoRA, vLLM, BM25, Wohlin, Qwen3, PaSa), record the video, run the README LLM quick start once.
+- OpenRouter spend is about $55 of the $60 cap. Sections below this one are older.
+
 ## Mission
 
 Finish the one-week MVP for the budgeted literature-search final project. Work
