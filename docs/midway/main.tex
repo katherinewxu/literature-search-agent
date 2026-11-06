@@ -37,9 +37,9 @@ match or beat a much larger prompted model?
 \textbf{(Q3)} Which strategies emerge: how do agents divide their budget between search and
 citation chasing, and when do they stop?
 \textbf{(Q4)} Do the results transfer to reviews from other fields?
-A fifth question came from proposal feedback: is the citation graph itself limiting, and would
-open-web search help? A sixth emerged from the results: \textbf{(Q5)} can an agent tell how much
-it has missed, i.e.\ estimate its own recall when it stops?
+Proposal feedback added a further question: is the citation graph itself limiting, and would
+open-web search help? The results raised one more: \textbf{(Q5)} can an agent tell how much it has
+missed, i.e.\ estimate its own recall when it stops?
 
 \section{Environment \& Data}
 
@@ -131,7 +131,7 @@ imitation, and whether a trained policy learns to use citation tools at all.
 \textbf{Done.}
 \begin{itemize}
 \item The environment, all baselines, the prompted agents and the training pipeline are
-  implemented and tested (47 unit tests, including leakage and cost-accounting tests).
+  implemented and tested (54 unit tests, including leakage and cost-accounting tests).
 \item Every system has been run on the 8 evaluation reviews $\times$ 3 tool sets $\times$ 3
   budgets, in both the closed pool and the open graph, and on the 24 transfer reviews. The
   prompted systems were also run on the 40 training reviews, so their life-science comparisons
@@ -185,11 +185,14 @@ paired difference.
   connectivity.
 \item \textbf{Live web.} On all of OpenAlex, Sonnet's recall falls from .67 to .32 and Haiku's
   from .63 to .17. Raw OpenAlex search finds 1\% of gold, so the LLM's lead over include-all
-  retrieval grows from $+.14$ (closed) to $+.22$ (open graph) to $+.31$ (web).
+  retrieval grows from $+.14$ (closed) to $+.22$ (open graph) to $+.31$ (web). On the 24 transfer
+  reviews Haiku falls from .48 to .10 ($-.379$ $[-.47, -.30]$), still ahead of raw search (.02) by
+  $+.080$ $[+.06, +.11]$.
 \item \textbf{Forced citation chasing.} Replacing every third action with expansion of a paper
   the agent already included lowers recall (Haiku $-.097$ $[-.19, -.02]$ closed, $-.071$
-  $[-.12, -.03]$ on 24 transfer reviews; Sonnet $-.018$, n.s.). Unlike PaSa
-  \citep{he2025pasa}, citation hops are a poor use of budget for systematic-review search.
+  $[-.12, -.03]$ on 24 transfer reviews; Sonnet $-.018$, n.s.; trained 1.7B $-.064$ $[-.12, -.01]$
+  at $B=20$, $-.003$ at $B=40$). Unlike PaSa \citep{he2025pasa}, in our setting citation hops are a
+  poor use of budget.
 \item \textbf{Q5.} End-of-episode recall estimates rank episodes ($r\approx .5$--$.7$) but are
   inaccurate per episode (error $\approx .2$). An LLM screener cannot audit the agent: it accepts
   92\% of gold but also 87\% of the agent's false inclusions.
@@ -199,10 +202,11 @@ paired difference.
 
 \textbf{Still to do.}
 \begin{itemize}
-\item GRPO v2 (running): F$_2$ reward, turn-level credit from each call's marginal gold
-  gain with a redundancy penalty, in the spirit of PaSa's per-call reward \citep{he2025pasa}, mixed budgets, 120 steps,
-  two seeds plus an ablation without turn credit.
-\item Live web on the 24 transfer reviews (scheduled).
+\item Evaluate GRPO v2 on held-out reviews. Training is finished: F$_2$ reward, turn-level credit
+  from each call's marginal gold gain with a redundancy penalty, in the spirit of PaSa's per-call
+  reward \citep{he2025pasa}, mixed budgets, 120 steps, two seeds plus an ablation without turn
+  credit. Success means precision $\ge .25$ with recall within .02 of the current policy, and a
+  GRPO gain larger than seed noise.
 \item Hand-label a sample of ``false positives'' to estimate how often agents find eligible
   studies missing from the gold set, as proposed.
 \item Write a fuller error analysis by failure type: premature stopping, reachable but not
