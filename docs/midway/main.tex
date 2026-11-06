@@ -178,6 +178,16 @@ paired difference.
   \item It matches its Haiku teacher out of field ($+.007$), but trails it in field ($-.159$).
   \item GRPO adds $+.01$ to $+.07$ over SFT in all six seed $\times$ condition cells. Seed-to-seed
     variation is about as large.
+  \item \emph{GRPO v2} (F$_2$ reward, turn-level credit from each call's marginal gold gain with a
+    redundancy penalty, in the spirit of PaSa's per-call reward \citep{he2025pasa}, mixed budgets,
+    120 steps; two seeds plus an ablation without turn credit) missed its pre-stated criteria: at
+    $B\ge 20$ no run reached precision $\ge .25$ with recall within .02 of v1, and its recall gain
+    over SFT was not consistently beyond seed noise. Turn credit trades recall for precision
+    (transfer, $B=40$: recall $-.052$ $[-.10, -.01]$, precision $+.062$ $[+.05, +.08]$, F1 $+.042$
+    $[+.02, +.06]$), and with hybrid tools the policy still spends all its budget on search.
+  \item Exploratory: with citation tools only, v2 stops early less often (20--28 of 40 calls spent,
+    vs.\ about 8 for SFT), and recall rises by $+.09$ to $+.24$ over SFT in all six seed
+    $\times$ universe cells on 8 reviews. Absolute recall stays low (.13--.30).
   \end{itemize}
 \item \textbf{Q3.} Given both tools, frontier agents spend 80--90\% of the budget on new
   queries and almost none on citation chasing; the trained model re-pages a dozen queries.
@@ -205,11 +215,9 @@ paired difference.
 
 \textbf{Still to do.}
 \begin{itemize}
-\item Evaluate GRPO v2 on held-out reviews. Training is finished: F$_2$ reward, turn-level credit
-  from each call's marginal gold gain with a redundancy penalty, in the spirit of PaSa's per-call
-  reward \citep{he2025pasa}, mixed budgets, 120 steps, two seeds plus an ablation without turn
-  credit. Success means precision $\ge .25$ with recall within .02 of the current policy, and a
-  GRPO gain larger than seed noise.
+\item Test whether larger budgets (100--400 calls) change the search-versus-citation result, and
+  how close recall gets to the level real reviews need.
+\item Tighten the end-of-episode recall bound (mean lower bound is only about .15).
 \item Hand-label a sample of ``false positives'' to estimate how often agents find eligible
   studies missing from the gold set, as proposed.
 \item Write a fuller error analysis by failure type: premature stopping, reachable but not

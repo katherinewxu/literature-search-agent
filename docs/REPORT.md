@@ -33,7 +33,7 @@ On 72 published reviews from SYNERGY+ we find:
 5. **A 1.7B model trained on about 2,700 teacher turns** goes from useless (.11–.13 recall) to beating
    a prompted model of the same family 19× its size (Qwen3-32B), and it matches its teacher (Haiku 5.5) on
    24 reviews from other fields. Supervised fine-tuning does almost all of the work.
-   Reinforcement learning (GRPO) adds a small gain that appears with both training seeds.
+   Reinforcement learning (GRPO) adds a small gain that appears with both training seeds. A redesigned reward (GRPO v2) missed its pre-stated success criteria: it trades recall for precision instead of improving both.
 
 The rest of this report gives the setup, the evidence for each claim, and the checks we ran
 to make sure the results are not artifacts of the small original evaluation set,
@@ -269,11 +269,31 @@ for both training seeds. Dotted lines mark the prompted Haiku teacher and Qwen3-
 Its precision (.11–.23) is far above include-everything retrieval and far below the
 frontier models (.3–.45).
 
-**A second training recipe (evaluation pending).** GRPO v2 uses an F2 reward, turn-level credit
-from each call's marginal gold gain, a redundancy penalty, mixed budgets and 120 steps, with two
-seeds plus an ablation without turn credit. Training has finished; the held-out evaluation has not.
-We fixed the success criteria in advance: precision of at least .25 with recall within .02 of the
-current policy, and a GRPO gain larger than seed noise.
+**A second training recipe: GRPO v2.** It uses an F2 reward, turn-level credit from each call's
+marginal gold gain, a redundancy penalty, mixed budgets and 120 steps, with two seeds plus an
+ablation without turn credit. We fixed the success criteria in advance: precision of at least .25
+with recall within .02 of GRPO v1, and a gain over SFT larger than seed noise. **It missed them.**
+At budgets 20 and 40 no run passed the precision and recall test (only five budget-10 cells did),
+and the recall gain over SFT was not consistently beyond seed noise.
+
+| transfer, hybrid, B=40 | recall | precision | F1 |
+|---|---|---|---|
+| SFT (seed 1 / seed 2) | .459 / .480 | .228 / .223 | .266 / .268 |
+| GRPO v1 | .483 / .524 | .196 / .196 | .244 / .251 |
+| GRPO v2, turn credit | .442 / .475 | .255 / .236 | .286 / .276 |
+| GRPO v2, no turn credit (seed 1) | .494 | .193 | .244 |
+
+Two things did come out of it:
+
+- *Turn credit moves the policy along the recall-precision trade-off.* Compared with the same
+  recipe without it, on transfer at B=40: recall −.052 [−.100, −.008], precision +.062
+  [+.045, +.080], F1 +.042 [+.022, +.062]. Compared with v1, F1 rises in both seeds (+.042, +.025)
+  and recall falls in both (−.041, −.050). This is a choice of operating point, not a better search.
+  With hybrid tools every policy still spends 100% of its budget on search.
+- *With citation tools only, v2 stops early less often (exploratory).* It spends 20–28 of 40 calls
+  where SFT spends about 8, and recall rises over SFT in all six seed × universe cells (+.09 to
+  +.24; five CIs exclude zero and the sixth touches it). This wasn't one of the pre-stated tests, it
+  rests on 8 reviews, and absolute recall stays low (.13–.30).
 
 ## 6. Limitations
 

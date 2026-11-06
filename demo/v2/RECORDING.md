@@ -22,10 +22,15 @@ Open `demo/v2/index.html` in a browser. Every page is self-contained and works o
 4. **Episode 3, live OpenAlex (50 s).** Same agent, all of OpenAlex. Queries are similar, but most results
    are off-topic: recall is 0.38 and it stops with 9 calls left. Show the table on the index page: the
    search engine alone finds 1%, so the LLM's value grows as the universe grows.
-5. **Results and next steps (30 s).** Show Figures 1 and 3 from the report (`docs/figures/`). Next: GRPO
-   v2, with a per-call reward and a precision cost, training now; and certified stopping.
+5. **Results and next steps (30 s).** Show Figures 1 and 3 from the report (`docs/figures/`). GRPO v2, a
+   redesigned reward, missed its pre-stated targets: it trades recall for precision, and the trained model
+   still never chases citations. Next: larger budgets, a better web agent, and a recall bound tight enough to
+   decide when to stop.
 
-Live terminal segment (optional, about 20 s, cached so it's instant on camera):
+Terminal segment (recommended, about 20 s, instant, no API key). The course expects a working prototype,
+so show the code running. Tiny fixture data with the scripted agent, run from the repo root:
 
-    litsearch run --data artifacts/fixture --review fixture_depression --agent snowball --mode hybrid \
-      --budget 20 --output runs/demo.json && litsearch demo build --trace runs/demo.json --output runs/demo.html
+    PYTHONPATH=src python3.12 -m litsearch.cli run --data artifacts/fixture --review fixture_depression \
+      --agent snowball --mode hybrid --budget 20 --output runs/demo.json
+    PYTHONPATH=src python3.12 -m litsearch.cli demo build --trace runs/demo.json --output runs/demo.html
+    open runs/demo.html

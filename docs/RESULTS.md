@@ -466,3 +466,31 @@ comparison should be read as a tie.
   memory can also shape queries in ways a title probe does not measure.
 - Main-table cells are single T=0 episodes; Haiku's sampled repeats vary by up to .06 recall.
 - Sonnet's mandatory reasoning differs from the other models' non-thinking mode.
+
+## GRPO v2 evaluation (final checkpoints; full tables in analysis/robust/grpo2.md)
+
+**A second training recipe: GRPO v2.** It uses an F2 reward, turn-level credit from each call's
+marginal gold gain, a redundancy penalty, mixed budgets and 120 steps, with two seeds plus an
+ablation without turn credit. We fixed the success criteria in advance: precision of at least .25
+with recall within .02 of GRPO v1, and a gain over SFT larger than seed noise. **It missed them.**
+At budgets 20 and 40 no run passed the precision and recall test (only five budget-10 cells did),
+and the recall gain over SFT was not consistently beyond seed noise.
+
+| transfer, hybrid, B=40 | recall | precision | F1 |
+|---|---|---|---|
+| SFT (seed 1 / seed 2) | .459 / .480 | .228 / .223 | .266 / .268 |
+| GRPO v1 | .483 / .524 | .196 / .196 | .244 / .251 |
+| GRPO v2, turn credit | .442 / .475 | .255 / .236 | .286 / .276 |
+| GRPO v2, no turn credit (seed 1) | .494 | .193 | .244 |
+
+Two things did come out of it:
+
+- *Turn credit moves the policy along the recall-precision trade-off.* Compared with the same
+  recipe without it, on transfer at B=40: recall −.052 [−.100, −.008], precision +.062
+  [+.045, +.080], F1 +.042 [+.022, +.062]. Compared with v1, F1 rises in both seeds (+.042, +.025)
+  and recall falls in both (−.041, −.050). This is a choice of operating point, not a better search.
+  With hybrid tools every policy still spends 100% of its budget on search.
+- *With citation tools only, v2 stops early less often (exploratory).* It spends 20–28 of 40 calls
+  where SFT spends about 8, and recall rises over SFT in all six seed × universe cells (+.09 to
+  +.24; five CIs exclude zero and the sixth touches it). This wasn't one of the pre-stated tests, it
+  rests on 8 reviews, and absolute recall stays low (.13–.30).
