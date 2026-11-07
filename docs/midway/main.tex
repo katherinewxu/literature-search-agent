@@ -139,20 +139,15 @@ imitation, and whether a trained policy learns to use citation tools at all.
   budgets, in both the closed pool and the open graph, and on the 24 transfer reviews. The
   prompted systems were also run on the 40 training reviews, so their life-science comparisons
   rest on 48 reviews.
-\item Robustness checks:
-  \begin{itemize}
-  \item three temperature-0.7 repeats for the API models;
-  \item a closed-book memorization probe, with all systems rescored after removing every gold
-    paper any model could name from memory;
-  \item a second training seed;
-  \item an agent that uses SPECTER2 as its search tool.
-  \end{itemize}
+\item Robustness checks: three temperature-0.7 repeats for the API models; a closed-book
+  memorization probe, with all systems rescored after removing every gold paper any model could
+  name from memory; a second training seed; an agent that uses SPECTER2 as its search tool.
 \item A step-by-step HTML replay of episodes, for the demo.
 \end{itemize}
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\linewidth]{figures/fig1_recall_vs_budget.png}
+\includegraphics[width=0.88\linewidth]{figures/fig1_recall_vs_budget.png}
 \caption{Recall by budget with hybrid tools, mean over the 8 evaluation reviews. Left: closed
 pool. Right: open graph. Dashed lines are retrieval baselines that include everything they
 see.}
@@ -215,10 +210,9 @@ paired difference.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.62\linewidth]{figures/fig5_web.png}
-\caption{Recall at $B=40$ with hybrid tools on the same 8 evaluation reviews, in three search
-universes of increasing size. The gray bars are include-all retrieval: BM25 in the closed pool and
-open graph, OpenAlex's own search on the live web.}
+\includegraphics[width=0.5\linewidth]{figures/fig5_web.png}
+\caption{Recall at $B=40$, hybrid tools, same 8 reviews, in three search universes. Gray: include-all
+BM25, or OpenAlex's own search on the live web.}
 \label{fig:universe}
 \end{figure}
 
@@ -244,8 +238,6 @@ open graph, OpenAlex's own search on the live web.}
   frontier-model runs.
 \item \textbf{Small in-field test set for the trained model.} Its 40 training reviews cannot be
   reused, so its in-field claims rest on 8 reviews. Its transfer claims rest on 24.
-\item \textbf{Training variance.} Two seeds differ by up to .07 recall, as much as the GRPO
-  effect, so ranking training recipes will need more seeds.
 \item \textbf{Missing abstracts.} About a quarter of gold papers lack an OpenAlex abstract,
   which caps screening accuracy for every system.
 \end{itemize}
