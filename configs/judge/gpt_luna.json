@@ -1,0 +1,14 @@
+{
+  "out": "judgements_gpt-5.6-luna.jsonl",
+  "batch": 8,
+  "judge": {
+    "model": "openai/gpt-5.6-luna",
+    "price_per_mtok": [0.2, 1.2],
+    "base_url": "https://openrouter.ai/api/v1",
+    "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+    "spend_ledger": "/scratch/users/kwx04/literature-search-agent/spend/openrouter.jsonl",
+    "spend_cap_usd": 60.0,
+    "max_tokens": 900,
+    "extra_body": {"reasoning": {"effort": "low"}}
+  }
+}

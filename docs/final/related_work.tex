@@ -1,0 +1,45 @@
+% Related Work draft for the final report (about 0.75 page). Keys are in references_new.bib.
+% Data: cite SYNERGY+ (westerbeek2026synergyplus, 119 reviews, we use 72), not only the original 26-review SYNERGY.
+\section{Related Work}
+
+\textbf{LLM agents for literature search.}
+PaSa \citep{he2025pasa} trains crawler and selector agents with reinforcement learning to search and
+expand citations, and SPAR \citep{shi2025spar} chains reference exploration without training. Deep-research
+systems such as OpenScholar \citep{asai2026openscholar} and PaperQA2 \citep{skarlinski2024paperqa2} retrieve
+literature to answer questions rather than to find every eligible study. DeepRetrieval
+\citep{jiang2025deepretrieval} uses RL to write queries with a recall reward. Benchmarks such as LitSearch
+\citep{ajith2024litsearch} and ResearchArena \citep{kang2024researcharena} score topical retrieval; the latter
+finds LLM agents trail keyword retrieval. None of these charges for tool calls or applies a systematic review's
+eligibility criteria, and none checks whether its gold set is complete.
+
+\textbf{LLMs in systematic-review production.}
+LLMs write Boolean queries that favour precision over recall \citep{wang2023chatgptboolean}, screen titles and
+abstracts with calibrated thresholds \citep{wang2024zeroshot,guo2024screening,khraisha2024gpt4}, and run
+end-to-end pipelines scored against the review's included studies \citep{wang2025trialmind,cao2025ottosr}.
+Automated citation searching over OpenAlex reaches a median recall of 35.8\% on 27 reviews
+\citep{rajit2025citation}. Small studies report that LLM systems also surface eligible studies the original
+authors missed \citep{cao2025ottosr,carrier2026aisr}. We measure this at scale and separate studies the
+review's search never retrieved from those its authors screened out.
+
+\textbf{Stopping and recall estimation.}
+Technology-assisted review estimates recall to decide when to stop screening a ranked list: knee and target
+rules \citep{cormack2016engineering}, hypergeometric tests \citep{callaghan2020stopping}, sampling-based
+estimators and certified intervals \citep{li2020stop,lewis2021certifying}, and point-process models
+\citep{stevenson2023pointprocess}; \citet{callaghan2024robust} argue such rules need careful evaluation. These
+assume a fixed collection and human labels. We estimate recall for an agent's open-ended search with an LLM
+screener, so the bound must also absorb the screener's error.
+
+\textbf{Incomplete relevance judgments.}
+Pooled test collections miss relevant documents \citep{zobel1998reliable}, motivating measures robust to
+unjudged documents \citep{buckley2004bpref,yilmaz2006infap,sakai2007bpref}; small pools also bias judgments
+toward documents that resemble the query \citep{buckley2007bias}. Systematic-review benchmarks inherit this:
+their qrels come from the review's own Boolean search \citep{kanoulas2017clef,scells2017testcollection},
+single screening misses a median 5\% of eligible studies \citep{waffenschmidt2019single}, and relative recall
+pools results across searches \citep{sampson2006relativerecall}. \citet{cormack2018clef} observed that a
+whole-MEDLINE system ranked many unassessed records that looked relevant, but did not quantify it. LLMs can fill
+judgment holes \citep{thomas2024llmjudge,upadhyay2024umbrela,upadhyay2024patch,abbasiantaeb2024holes}, though
+they can be gamed or fooled \citep{clarke2024cantreplace,alaofi2024fooled,soboroff2025dontuse}, and per-topic
+classifiers trained on a few human labels can beat prompted judges \citep{gienapp2025topicclassifiers}.
+\citet{sahu2026rethinking} argue that human citation lists are not ground truth for literature search. We use
+the review's screened-but-excluded records to calibrate an LLM judge, quantify how much of an agent's apparent
+error lies outside the review's search, and re-score with pooled relevance.
