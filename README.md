@@ -65,6 +65,17 @@ The full evaluation (72 SYNERGY+ reviews) is built and run with the data, matrix
 FarmShare instructions below. Every reported number, with the run directory it came
 from, is in `docs/RESULTS.md`.
 
+### Reproduce the live-web results offline
+
+The live-web runs query OpenAlex, which changes over time. Compact records of every live-web
+episode (predictions, seeds, action costs) and the public SYNERGY+ inclusion labels for those
+32 reviews are shipped in `results/web/` (1.2 MB). This recomputes the web recall tables and
+the paired environment comparisons with no network or API key:
+
+```bash
+python scripts/reproduce_web.py results/web
+```
+
 Run the test suite without installing pytest:
 
 ```bash

@@ -1,0 +1,36 @@
+{
+  "data_dir": "/scratch/users/kwx04/literature-search-agent/data/synergy-v3",
+  "universe": "openalex",
+  "openalex_cache": "/scratch/users/kwx04/literature-search-agent/cache/openalex-web",
+  "index_scope": "pool",
+  "seed": 329,
+  "reviews": [
+    "Appenzeller-Herzog_2019",
+    "Bos_2018",
+    "Brouwer_2019",
+    "Donners_2021",
+    "Hall_2011",
+    "Leenaars_2019",
+    "Meijboom_2021",
+    "Muthu_2020"
+  ],
+  "budgets": [
+    10,
+    20,
+    40
+  ],
+  "output_dir": "/scratch/users/kwx04/literature-search-agent/runs/synergy-v3-web-snowball",
+  "agents": [
+    {
+      "name": "snowball",
+      "label": "snowball-tuned",
+      "include_threshold": 0.04,
+      "modes": [
+        "citation",
+        "hybrid"
+      ],
+      "note": "threshold chosen on v3 train split (runs/snowball-tune-train); no LLM"
+    }
+  ],
+  "_note": "Scripted (no-LLM) citation-chasing baseline on the live web; original environment."
+}
