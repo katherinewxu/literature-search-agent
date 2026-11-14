@@ -118,6 +118,9 @@ class LLMSearchAgent:
     seed: int | None = None
     max_undecided_shown: int = 40
     history_shown: int = 12
+    # v2 environment fix: list up to this many already-screened (incl. excluded) papers as expandable.
+    # 0 keeps the original prompt, so earlier runs stay reproducible.
+    show_seen: int = 0
     record_turns: bool = True
     turns: list[TurnRecord] = field(default_factory=list, init=False)
     stats: dict[str, int] = field(
@@ -173,6 +176,13 @@ class LLMSearchAgent:
         ]
         for paper_id in list(observation.included_ids)[-15:]:
             lines.append(f"- {paper_id} | {_clip(self._titles.get(paper_id, ''), 120)}")
+        if self.show_seen:
+            included = set(observation.included_ids)
+            seen = [i for i in self._titles if i in self._decided and i not in included][-self.show_seen :]
+            if seen:
+                lines += ["", f"SCREENED OUT BUT STILL EXPANDABLE ({len(seen)} most recent; an excluded paper can still "
+                          "cite or be cited by eligible studies):"]
+                lines += [f"- {i} | {_clip(self._titles.get(i, ''), 120)}" for i in seen]
         lines += ["", "RECENT ACTIONS:"]
         lines += [f"- {entry}" for entry in self._history[-self.history_shown :]] or ["- (none yet)"]
         if read_paper:

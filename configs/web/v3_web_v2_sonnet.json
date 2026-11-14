@@ -1,0 +1,47 @@
+{
+  "data_dir": "/scratch/users/kwx04/literature-search-agent/data/synergy-v3",
+  "universe": "openalex",
+  "openalex_cache": "/scratch/users/kwx04/literature-search-agent/cache/openalex-web",
+  "index_scope": "pool",
+  "seed": 329,
+  "reviews": [
+    "Appenzeller-Herzog_2019",
+    "Bos_2018",
+    "Brouwer_2019",
+    "Donners_2021",
+    "Hall_2011",
+    "Leenaars_2019",
+    "Meijboom_2021",
+    "Muthu_2020"
+  ],
+  "seed_fallback": true,
+  "output_dir": "/scratch/users/kwx04/literature-search-agent/runs/synergy-v3-web-v2",
+  "budgets": [
+    40
+  ],
+  "agents": [
+    {
+      "name": "llm",
+      "label": "sonnet-5.5",
+      "model": "anthropic/claude-sonnet-5.5",
+      "price_per_mtok": [
+        2.0,
+        10.0
+      ],
+      "temperature": 0.0,
+      "base_url": "https://openrouter.ai/api/v1",
+      "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+      "spend_ledger": "/scratch/users/kwx04/literature-search-agent/spend/openrouter.jsonl",
+      "spend_cap_usd": 60.0,
+      "max_tokens": 1500,
+      "modes": [
+        "citation"
+      ],
+      "show_seen": 20,
+      "budgets": [
+        40
+      ]
+    }
+  ],
+  "_note": "v2 environment: screened-out papers stay expandable (show_seen) and seeding retries shorter queries when the question finds none (seed_fallback)."
+}

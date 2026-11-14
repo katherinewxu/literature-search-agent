@@ -31,6 +31,7 @@ def _make_agent(name: str, config: dict[str, Any], seed: int, backends: dict[str
             temperature=float(config.get("temperature", 0.0)),
             seed=seed if float(config.get("temperature", 0.0)) > 0 else None,
             record_turns=bool(config.get("record_turns", True)),
+            show_seen=int(config.get("show_seen", 0)),
         )
         if config.get("force_expand_every"):
             from .forced import ForcedExpansionAgent
@@ -157,7 +158,7 @@ def run_matrix(
         if web_store is not None:
             from .web import WebLiteratureSearchEnv
 
-            env = WebLiteratureSearchEnv(web_store, spec)
+            env = WebLiteratureSearchEnv(web_store, spec, seed_fallback=bool(config.get("seed_fallback", False)))
         else:
             env = LiteratureSearchEnv(store, retrievers.get(agent_config.get("retriever", "bm25"), review), spec)
         run = run_episode(env, _make_agent(agent_config["name"], agent_config, seed, backends))

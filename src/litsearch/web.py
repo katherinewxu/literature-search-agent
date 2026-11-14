@@ -151,8 +151,10 @@ class _WebAllowed:
 
 
 class WebLiteratureSearchEnv(LiteratureSearchEnv):
-    def __init__(self, store: WebStore, spec: EpisodeSpec) -> None:
+    def __init__(self, store: WebStore, spec: EpisodeSpec, seed_fallback: bool = False) -> None:
         self.web = store
+        # v2 environment fix: if the full question finds no seeds, retry with shorter queries.
+        self.seed_fallback = seed_fallback
         self._review = store.review(spec.review_id)
         cutoff = self._review.search_cutoff_date or f"{self._review.search_cutoff_year}-12-31"
         self._filter = f"to_publication_date:{cutoff}"
@@ -249,4 +251,26 @@ class _SeedRetriever:
         env = self.env
         # The base __init__ has not yet set ``exposed``-dependent state beyond empty sets.
         env.exposed = getattr(env, "exposed", set())
-        return env._search_ids(env.spec.question, k)
+        seeds = env._search_ids(env.spec.question, k)
+        if seeds or not env.seed_fallback:
+            return seeds
+        for query in _seed_fallback_queries(env.spec.question):
+            seeds = env._search_ids(query, k)
+            if seeds:
+                break
+        return seeds
+
+
+def _seed_fallback_queries(question: str) -> list[str]:
+    """Shorter versions of a review title: drop 'a systematic review'-style tails and subtitles,
+    then keep the first 8 and 5 content words."""
+    import re
+
+    base = re.sub(r"[:\-\u2013\u2014]\s*(a\s+)?(systematic|scoping|narrative)?\s*(review|meta-analysis).*$", "", question, flags=re.I)
+    base = re.sub(r"\b(a\s+)?(systematic review|meta-analysis|scoping review)\b.*$", "", base, flags=re.I).strip(" :.-")
+    words = [w for w in re.findall(r"[A-Za-z0-9\u0370-\u03ff-]+", base) if len(w) > 3]
+    out = []
+    for q in (base, " ".join(words[:8]), " ".join(words[:5])):
+        if q and q not in out and q != question:
+            out.append(q)
+    return out
