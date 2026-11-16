@@ -11,14 +11,14 @@ CI: bootstrap over reviews; up/down: reviews where B beats / trails A; p: exact 
 | eval: v2 - original, haiku citation B=40 | 8 | +0.042 | [+0.000, +0.100] | 2/0 | 0.500 |
 | eval: v2 - original, sonnet citation B=40 | 8 | +0.070 | [+0.026, +0.121] | 6/0 | 0.031 |
 | eval: v2 - original, haiku hybrid B=40 | 8 | +0.032 | [-0.037, +0.133] | 2/2 | 1.000 |
-| HELD-OUT transfer: v2 - original, haiku citation B=40 | 22 | +0.000 | [-0.028, +0.037] | 1/4 | 0.375 |
-| HELD-OUT transfer: v2 - original, haiku hybrid B=20 | 19 | +0.026 | [-0.004, +0.057] | 10/6 | 0.454 |
-| HELD-OUT transfer: v2 - original, haiku hybrid B=40 | 15 | +0.044 | [+0.001, +0.094] | 9/4 | 0.267 |
-| eval: sonnet hybrid - snowball hybrid, B=40 | 8 | +0.316 | [+0.196, +0.447] | 8/0 | 0.008 |
-| eval: sonnet hybrid - OpenAlex search, B=40 | 8 | +0.315 | [+0.191, +0.453] | 8/0 | 0.008 |
+| HELD-OUT transfer: v2 - original, haiku citation B=40 | 24 | +0.001 | [-0.026, +0.034] | 2/4 | 0.688 |
+| HELD-OUT transfer: v2 - original, haiku hybrid B=20 | 24 | +0.026 | [+0.002, +0.051] | 14/6 | 0.115 |
+| HELD-OUT transfer: v2 - original, haiku hybrid B=40 | 24 | +0.037 | [+0.007, +0.071] | 13/7 | 0.263 |
+| eval: sonnet hybrid - snowball hybrid, B=40 | 8 | +0.316 | [+0.194, +0.447] | 8/0 | 0.008 |
+| eval: sonnet hybrid - OpenAlex search, B=40 | 8 | +0.315 | [+0.192, +0.449] | 8/0 | 0.008 |
 | eval: haiku citation - snowball citation, B=40 | 8 | +0.096 | [-0.002, +0.231] | 3/1 | 0.625 |
-| transfer: haiku hybrid - snowball hybrid, B=40 | 24 | +0.087 | [+0.060, +0.114] | 22/0 | 0.000 |
-| transfer: haiku hybrid - OpenAlex search, B=40 | 24 | +0.080 | [+0.057, +0.105] | 22/0 | 0.000 |
+| transfer: haiku hybrid - snowball hybrid, B=40 | 24 | +0.087 | [+0.061, +0.114] | 22/0 | 0.000 |
+| transfer: haiku hybrid - OpenAlex search, B=40 | 24 | +0.080 | [+0.056, +0.105] | 22/0 | 0.000 |
 
 Mean recall per web system (original environment unless noted):
 
@@ -57,9 +57,9 @@ Mean recall per web system (original environment unless noted):
 | transfer | snowball-tuned | hybrid | 20 | 24 | 0.011 |
 | transfer | snowball-tuned | hybrid | 40 | 24 | 0.011 |
 | transfer | haiku-5.5 | citation | 40 | 24 | 0.036 |
-| transfer | haiku-5.5 (v2 env) | citation | 40 | 22 | 0.040 |
-| transfer | haiku-5.5 (v2 env) | hybrid | 20 | 19 | 0.118 |
-| transfer | haiku-5.5 (v2 env) | hybrid | 40 | 15 | 0.143 |
+| transfer | haiku-5.5 (v2 env) | citation | 40 | 24 | 0.037 |
+| transfer | haiku-5.5 (v2 env) | hybrid | 20 | 24 | 0.110 |
+| transfer | haiku-5.5 (v2 env) | hybrid | 40 | 24 | 0.134 |
 
 ## 2. Judge sensitivity (Rogan-Gladen eligible share of never-screened records)
 
@@ -73,7 +73,7 @@ If specificity on never-screened records differs from the screened-excluded esti
 | 0.86 | 0.19 | 0.26 | 0.32 | 0.37 | 0.42 | 0.45 |
 | 0.95 | 0.16 | 0.22 | 0.28 | 0.33 | 0.37 | 0.41 |
 
-**gpt-5.6-luna**: measured sensitivity 0.87, specificity 0.72, unscreened yes-rate 0.45; eligible share 0.29, bootstrap 95% CI [0.22, 0.36] (calibration sampling only).
+**gpt-5.6-luna**: measured sensitivity 0.87, specificity 0.72, unscreened yes-rate 0.45; eligible share 0.29, bootstrap 95% CI [0.22, 0.35] (calibration sampling only).
 
 If specificity on never-screened records differs from the screened-excluded estimate:
 

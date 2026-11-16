@@ -14,7 +14,9 @@ observable ways, and this script corrects for each:
               others. Calibration records are reweighted so each review counts as much as it
               does among the unscreened records.
 
-Estimates: naive (as in web_robust.py), similarity-stratified, review-reweighted, and both.
+Estimates: naive (as in web_robust.py), similarity-stratified, review-reweighted, both, and
+per-review Rogan-Gladen with each review's error rates shrunk toward the pooled rates (k=10
+pseudo-records), which is the review-mix correction with less variance from tiny reviews.
 CIs: cluster bootstrap over reviews (2,000 resamples), recomputing bins' rates and weights.
 This removes only observable shift; whatever made the review's own search miss a record may
 still change the judge's error rates. Labels are used on the evaluator side only.
@@ -141,6 +143,33 @@ def estimate(rows, reweight, stratify):
     return share, (yes_ppv / yes_n if yes_n else float("nan"))
 
 
+def shrunk(rows, k=10.0):
+    """Per-review Rogan-Gladen with each review's sensitivity/specificity shrunk toward the pooled
+    rates (k pseudo-records), weighted by the review's unscreened count."""
+    pool = defaultdict(list)
+    by = defaultdict(lambda: defaultdict(list))
+    for r in rows:
+        pool[r["kind"]].append(r["y"])
+        by[r["review"]][r["kind"]].append(r["y"])
+    s0, sp0 = statistics.fmean(pool["gold"]), 1 - statistics.fmean(pool["excluded"])
+    share, n_u, yes_ppv, yes_n = 0.0, 0, 0.0, 0
+    for v in by.values():
+        u = v["unscreened"]
+        if not u:
+            continue
+        sens = (sum(v["gold"]) + k * s0) / (len(v["gold"]) + k)
+        spec = (len(v["excluded"]) - sum(v["excluded"]) + k * sp0) / (len(v["excluded"]) + k)
+        if sens + spec - 1 < 0.1:
+            sens, spec = s0, sp0
+        p = rg(statistics.fmean(u), sens, spec)
+        share += p * len(u)
+        n_u += len(u)
+        if p > 0:
+            yes_ppv += sens * p / (sens * p + (1 - spec) * (1 - p)) * sum(u)
+        yes_n += sum(u)
+    return share / n_u, (yes_ppv / yes_n if yes_n else float("nan"))
+
+
 VARIANTS = (("naive (pooled calibration)", False, False), ("similarity-stratified", False, True),
             ("review-reweighted", True, False), ("both", True, True))
 
@@ -194,8 +223,9 @@ def main():
                 sample += [{**r, "review": f"{rv}#{i}"} for r in by_rev[rv]]
             for label, rw, st in VARIANTS:
                 boots[label].append(estimate(sample, rw, st))
-        for label, rw, st in VARIANTS:
-            s, ppv = estimate(rows, rw, st)
+            boots["per-review, shrunk (k=10)"].append(shrunk(sample))
+        for label, rw, st in VARIANTS + (("per-review, shrunk (k=10)", None, None),):
+            s, ppv = estimate(rows, rw, st) if rw is not None else shrunk(rows)
             bs = sorted(x[0] for x in boots[label])
             bp = sorted(x[1] for x in boots[label] if not math.isnan(x[1]))
             ci = lambda v: f"[{v[int(.025 * len(v))]:.2f}, {v[int(.975 * len(v)) - 1]:.2f}]"

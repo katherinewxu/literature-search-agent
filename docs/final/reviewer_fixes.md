@@ -5,20 +5,21 @@ Numbers: `analysis/webfp/web_robust.md` (script `scripts/web_robust.py`), `analy
 `python scripts/reproduce_web.py results/web`.
 
 ## 1. The v2 environment fix was designed and tested on the same 8 reviews
-**Done:** held-out test on the 24 transfer reviews (Haiku; never used to design the fix).
-Partial: the OpenAlex daily request budget ran out, so 56/72 held-out episodes finished
-(citation B=40: 22 reviews, hybrid B=20: 19, hybrid B=40: 15). Fill-in command below.
+**Done:** held-out test on all 24 transfer reviews (Haiku; never used to design the fix), complete
+as of 2026-11-15. Figure: `docs/figures/figW3_env_v2.png`.
 
 | v2 - original (recall) | reviews | mean | 95% CI | up/down |
 |---|---|---|---|---|
 | eval, sonnet citation B=40 | 8 | +.070 | [+.026, +.121] | 6/0 (sign p=.03) |
 | eval, haiku citation B=10/20/40 | 8 | +.036/+.047/+.042 | all CIs >= 0 | 3/0, 3/0, 2/0 |
-| **held-out** transfer, haiku citation B=40 | 22 | +.000 | [-.028, +.037] | 1/4 |
-| **held-out** transfer, haiku hybrid B=20 | 19 | +.026 | [-.004, +.057] | 10/6 |
-| **held-out** transfer, haiku hybrid B=40 | 15 | +.044 | [+.001, +.094] | 9/4 |
+| **held-out** transfer, haiku citation B=40 | 24 | +.001 | [-.026, +.034] | 2/4 (p=.69) |
+| **held-out** transfer, haiku hybrid B=20 | 24 | +.026 | [+.002, +.051] | 14/6 (p=.12) |
+| **held-out** transfer, haiku hybrid B=40 | 24 | +.037 | [+.007, +.071] | 13/7 (p=.26) |
 
-**How to report it:** the fix does not replicate for Haiku citation mode on held-out reviews; the
-eval gains for Haiku come from 2-3 reviews (Meijboom via the seed fallback, Donners, Brouwer).
+**How to report it:** the fix does not replicate for Haiku citation mode on held-out reviews. In
+hybrid mode it gives a small gain whose bootstrap CI excludes zero (+.026, +.037) but whose sign test
+does not (more reviews improve than worsen, 14/6 and 13/7, with sizeable losses on some). On eval the
+Haiku gains come from 2-3 reviews (Meijboom via the seed fallback, Donners, Brouwer).
 The Sonnet eval gain is the only result that is significant by sign test, and it was not
 tested on held-out reviews (too expensive under the cap). Present v2 as a diagnosed environment
 flaw with a fix that helps on the reviews where the dead end occurs, not as a general improvement.
@@ -33,8 +34,16 @@ noise is already sized in `docs/RESULTS.md` (Haiku about +-.05 between repeats; 
 - Gemini: eligible share .33, 95% CI [.27, .39] from calibration sampling; .19-.45 if specificity
   on never-screened records were anywhere from .65 to .90. GPT-5.6 Luna: .29 [.22, .36].
 - **Wording:** say "abstract-level eligible" everywhere; full-text eligibility is lower.
-- **Still needed:** the 30 hand labels (`analysis/webfp/handlabel.html`). With n=30 a 95% CI is
-  about +-.17, so they check direction, not the exact share.
+- **Covariate-shift correction** (`analysis/webfp/judge_shift.md`, `scripts/judge_shift.py`):
+  - Similarity to the review question: no shift; stratifying leaves .33 / .29 unchanged.
+  - Review mix: unscreened records cluster in reviews where the judge barely discriminates
+    (Hall, Deckers, Quevedo: it calls ~70% of human-excluded records eligible; 32% of unscreened
+    records). Per-review Rogan-Gladen with error rates shrunk toward the pooled ones (k=10):
+    Gemini .26 [.18, .33], PPV .53 (naive .64); Luna .24 [.15, .32], PPV .48 (naive .56).
+    Unshrunk reweighting gives .07 / .00 but is dominated by reviews with 1-7 labelled records.
+  - Report the shrunk estimate as the main number and the naive one as an upper reference.
+- **Hand labels: not planned.** With n=30 a 95% CI is about +-.17, and the review-mix problem means
+  a pooled human check would not settle the per-review question either.
 
 ## 4. "Budget" ignores LLM cost
 **Done** (`web_robust.md` section 3, from per-call usage in the response cache, 100% matched):
@@ -59,10 +68,14 @@ Already done (`docs/RESULTS.md`, "Robustness"): closed-book probe; removing ever
 model names from memory changes no conclusion (each system loses at most .02 recall).
 
 ## 7. Recall of .1-.35 is far from usable
-**Reframe** the agent as a supplement to the review's own search. `web_robust.md` section 4: per
-B=40 episode, Sonnet hybrid includes 10.5 gold plus about 7.7 abstract-level-eligible studies the
-review's search never retrieved (+73%); Haiku hybrid on transfer 9.0 gold plus about 12.5 (+139%).
-Caveat: abstract-level and judge-estimated (see 3).
+**Reframe** the agent as a supplement to the review's own search, as a hedged secondary result.
+`web_robust.md` section 4 uses the naive PPV (.64): per B=40 episode, Sonnet hybrid includes 10.5
+gold plus about 7.7 abstract-level-eligible studies the review's search never retrieved (+73%);
+Haiku hybrid on transfer 9.0 gold plus about 12.5 (+139%). With the shrunk per-review correction
+(PPV .53, section 3) these become about 6.4 (+61%) and 10.4 (+115%). Report the corrected
+numbers, give the naive ones as an upper reference, and say "judge-estimated, abstract-level,
+sensitive to how the judge's per-review error rates are estimated". Put it in Discussion or late
+in Results, not in the abstract.
 
 ## 8. Live web is not reproducible
 **Done:** README quick start verified on a fresh clone (Python 3.15 venv, `pip install -e .`,
@@ -80,9 +93,6 @@ build/audit/run/demo/report, 57 tests OK). Compact live-web records ship in `res
   early, partly because of a dead end in the environment (excluded papers were not offered for
   expansion; one review had no seeds).
 
-## Fill in the held-out runs (after the OpenAlex budget resets at 00:00 UTC)
-```bash
-ssh ... 'cd ~/literature-search-agent && MATRIX_CONFIG=configs/web/transfer_web_v2_haiku.json WORKERS=3 \
-  sbatch --exclude=barley-03,barley-04 --time=04:00:00 --export=ALL farmshare/api_matrix.sbatch'
-```
-then rerun `scripts/web_robust.py` and `scripts/export_web_results.py` and update section 1.
+## Refreshing the numbers
+After any new live-web runs: `sbatch farmshare/web_refresh.sbatch` (judge shift, robustness, v2
+comparison, export; no API calls), copy `results/web/` back, then `python scripts/web_figures.py`.
