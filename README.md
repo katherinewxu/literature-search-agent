@@ -76,6 +76,9 @@ the paired environment comparisons with no network or API key:
 python scripts/reproduce_web.py results/web
 ```
 
+The live-web figures and main table (`docs/figures/figW*.png`, `docs/figures/tables/web_main.tex`)
+rebuild from the same records (needs matplotlib): `python scripts/web_figures.py`.
+
 Run the test suite without installing pytest:
 
 ```bash

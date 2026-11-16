@@ -1,0 +1,15 @@
+\begin{tabular}{llcccccc}
+\toprule
+ & & \multicolumn{3}{c}{Eval (8 reviews)} & \multicolumn{3}{c}{Transfer (24 reviews)} \\
+\cmidrule(lr){3-5}\cmidrule(lr){6-8}
+System & Mode & Recall [95\% CI] & Prec. & \$/ep. & Recall [95\% CI] & Prec. & \$/ep. \\
+\midrule
+Sonnet 5.5 & hybrid & 0.324 [0.193, 0.476] & 0.349 & 0.234 & -- & -- & -- \\
+Sonnet 5.5 & citation & 0.148 [0.017, 0.348] & 0.180 & 0.058 & -- & -- & -- \\
+Haiku 5.5 & hybrid & 0.171 [0.057, 0.344] & 0.148 & 0.006 & 0.098 [0.066, 0.135] & 0.124 & 0.007 \\
+Haiku 5.5 & citation & 0.108 [0.004, 0.258] & 0.161 & 0.001 & 0.036 [0.009, 0.071] & 0.087 & -- \\
+Snowball (scripted) & hybrid & 0.008 [0.000, 0.025] & 0.004 & 0.000 & 0.011 [0.001, 0.027] & 0.011 & 0.000 \\
+Snowball (scripted) & citation & 0.012 [0.002, 0.029] & 0.012 & 0.000 & 0.007 [0.000, 0.016] & 0.010 & 0.000 \\
+OpenAlex search (include all) & keyword & 0.010 [0.000, 0.026] & 0.002 & 0.000 & 0.018 [0.004, 0.039] & 0.004 & 0.000 \\
+\bottomrule
+\end{tabular}
