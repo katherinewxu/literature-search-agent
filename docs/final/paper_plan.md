@@ -30,3 +30,18 @@ estimates, trained model on the live web (vs Haiku and vs the no-loop baseline).
   ceiling of the static queries.
 - Trained model on web: compared with Haiku hybrid on the same reviews. Report as transfer of the
   closed-graph training to the live web, whatever the sign.
+
+## Results so far (2026-11-19; transfer 21-22/24 reviews, Sonnet no-loop and trained-on-web pending)
+**P1 came out against the agent loop.** Haiku, B=40, paired over reviews:
+
+| split | agent recall | no-loop recall | agent - no-loop | up/down | F1 agent vs no-loop |
+|---|---|---|---|---|---|
+| transfer (21) | .098 | .176 | -.086 [-.121, -.055] | 0/18, p<.001 | .087 vs .088 (equal) |
+| eval (8) | .171 | .368 | -.198 [-.310, -.103] | 0/8 | .137 vs .160 (CI spans 0) |
+
+Why: the no-loop baseline spends the whole budget on search (40 of 40) and includes ~4x more
+papers (eval 106 vs 28); the agent leaves about half its budget unspent and screens more strictly
+(precision .148 vs .108 on eval). Same F1, different operating point: the loop buys precision,
+not recall. Include-all ceiling of the static queries: .364 eval / .196 transfer, so title
+screening loses little. No-loop Haiku also costs less ($0.004 vs $0.007 per episode).
+Sonnet hybrid agent (.324 eval) is still below no-loop Haiku (.368) on recall.

@@ -39,6 +39,9 @@ SYSTEMS = [  # (agent, mode, label, color, linestyle, marker)
     ("sonnet-5.5", "citation", "Sonnet 5.5, citations only", SONNET, "--", "o"),
     ("haiku-5.5", "hybrid", "Haiku 5.5, search + citations", HAIKU, "-", "o"),
     ("haiku-5.5", "citation", "Haiku 5.5, citations only", HAIKU, "--", "o"),
+    ("sonnet-5.5-static", "keyword", "Sonnet 5.5, no loop (8 fixed queries)", SONNET, ":", "^"),
+    ("haiku-5.5-static", "keyword", "Haiku 5.5, no loop (8 fixed queries)", HAIKU, ":", "^"),
+    ("qwen3-1.7b-grpo", "hybrid", "Qwen3-1.7B trained (GRPO), search + citations", "#1baf7a", "-", "D"),
     ("snowball-tuned", "hybrid", "Snowball (scripted), search + citations", BASE1, ":", "v"),
     ("snowball-tuned", "citation", "Snowball (scripted), citations only", BASE2, ":", "v"),
     ("openalex-search", "keyword", "OpenAlex search (include all)", BASE1, "-.", "s"),
@@ -205,7 +208,7 @@ def fig_cost(cells, out):
             ax.scatter([x], [y], s=34, marker=mk, color=color if fill else SURFACE, edgecolors=color, linewidths=1.4, zorder=3)
             if cost[(split, agent, mode)] == 0:
                 continue  # labelled once below
-            short = label.replace(", search + citations", " hybrid").replace(", citations only", " citation").replace(" (include all)", "").replace(" (scripted)", "")
+            short = label.replace(" (8 fixed queries)", "").replace(", search + citations", " hybrid").replace(", citations only", " citation").replace(" (include all)", "").replace(" (scripted)", "")
             ax.annotate(f"{short} ({split})", (x, y), xytext=(5, 3), textcoords="offset points", fontsize=6.5, color=INK)
     ax.annotate("non-LLM baselines: OpenAlex search, snowball\n(recall .007-.018, both splits)", (floor, 0.012),
                 xytext=(14, 18), textcoords="offset points", fontsize=6.5, color=INK,

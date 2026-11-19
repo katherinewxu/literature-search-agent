@@ -88,11 +88,6 @@
       "spend_ledger": "/scratch/users/kwx04/literature-search-agent/spend/openrouter.jsonl",
       "spend_cap_usd": 60.0,
       "max_tokens": 1500,
-      "extra_body": {
-        "reasoning": {
-          "enabled": false
-        }
-      },
       "name": "static_query",
       "label": "sonnet-5.5-static",
       "screen": true,

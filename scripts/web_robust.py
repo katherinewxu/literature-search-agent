@@ -96,13 +96,24 @@ def section_paired():
         ("eval: haiku citation - snowball citation, B=40", "eval", ("synergy-v3-web-snowball", "snowball-tuned", "citation", 40), ("synergy-v3-web-r5", "haiku-5.5", "citation", 40)),
         ("transfer: haiku hybrid - snowball hybrid, B=40", "transfer", ("ext-transfer-web-snowball", "snowball-tuned", "hybrid", 40), ("ext-transfer-web-r5", "haiku-5.5", "hybrid", 40)),
         ("transfer: haiku hybrid - OpenAlex search, B=40", "transfer", ("ext-transfer-web-r5", "openalex-search", "keyword", 40), ("ext-transfer-web-r5", "haiku-5.5", "hybrid", 40)),
+        # P1 (primary): agent loop vs a static LLM query list with title screening, same model and budget.
+        ("P1 transfer: haiku hybrid agent - haiku no-loop (static queries), B=40", "transfer", ("ext-transfer-web-static", "haiku-5.5-static", "keyword", 40), ("ext-transfer-web-r5", "haiku-5.5", "hybrid", 40)),
+        ("transfer: haiku hybrid agent - haiku no-loop, B=20", "transfer", ("ext-transfer-web-static", "haiku-5.5-static", "keyword", 20), ("ext-transfer-web-r5", "haiku-5.5", "hybrid", 20)),
+        ("transfer: haiku no-loop screened - include-all, B=40", "transfer", ("ext-transfer-web-static", "haiku-5.5-static-all", "keyword", 40), ("ext-transfer-web-static", "haiku-5.5-static", "keyword", 40)),
+        ("eval: haiku hybrid agent - haiku no-loop, B=40", "eval", ("synergy-v3-web-static", "haiku-5.5-static", "keyword", 40), ("synergy-v3-web-r5", "haiku-5.5", "hybrid", 40)),
+        ("eval: sonnet hybrid agent - sonnet no-loop, B=40", "eval", ("synergy-v3-web-static", "sonnet-5.5-static", "keyword", 40), ("synergy-v3-web-r5", "sonnet-5.5", "hybrid", 40)),
+        ("transfer: trained 1.7B (GRPO) - haiku hybrid, B=40", "transfer", ("ext-transfer-web-r5", "haiku-5.5", "hybrid", 40), ("ext-transfer-web-trained", "qwen3-1.7b-grpo", "hybrid", 40)),
+        ("transfer: trained 1.7B (GRPO) - SFT, B=40", "transfer", ("ext-transfer-web-trained", "qwen3-1.7b-sft", "hybrid", 40), ("ext-transfer-web-trained", "qwen3-1.7b-grpo", "hybrid", 40)),
+        ("transfer: trained 1.7B (GRPO) - haiku no-loop, B=40", "transfer", ("ext-transfer-web-static", "haiku-5.5-static", "keyword", 40), ("ext-transfer-web-trained", "qwen3-1.7b-grpo", "hybrid", 40)),
+        ("eval: trained 1.7B (GRPO) - haiku hybrid, B=40", "eval", ("synergy-v3-web-r5", "haiku-5.5", "hybrid", 40), ("synergy-v3-web-trained", "qwen3-1.7b-grpo", "hybrid", 40)),
     ]
     for label, split, a, b in rows:
         L.append(paired(label, recall_by_review(load(*a), split), recall_by_review(load(*b), split)))
     # Mean recall of every web system, for the baseline table.
     L += ["", "Mean recall per web system (original environment unless noted):", "", "| split | system | mode | B | n | recall |", "|---|---|---|---|---|---|"]
-    for split, dirs in (("eval", ["synergy-v3-web-r5", "synergy-v3-web-snowball", "synergy-v3-web-v2"]),
-                        ("transfer", ["ext-transfer-web-r5", "ext-transfer-web-snowball", "ext-transfer-web-citation-orig", "ext-transfer-web-v2"])):
+    for split, dirs in (("eval", ["synergy-v3-web-r5", "synergy-v3-web-snowball", "synergy-v3-web-v2", "synergy-v3-web-static", "synergy-v3-web-trained"]),
+                        ("transfer", ["ext-transfer-web-r5", "ext-transfer-web-snowball", "ext-transfer-web-citation-orig", "ext-transfer-web-v2",
+                                      "ext-transfer-web-static", "ext-transfer-web-trained"])):
         for d in dirs:
             groups = defaultdict(list)
             for r in load(d):
@@ -182,7 +193,7 @@ def section_cost():
          "Dollars are recovered from the response cache; 'matched' is the share of turns whose cached usage was found.", "",
          "| split | system | mode | n | LLM calls/ep | $/episode | gold found/ep | $/gold found | wall s/ep | matched |", "|---|---|---|---|---|---|---|---|---|---|"]
     cfg_cache = {}
-    for split, dirs in (("eval", ["synergy-v3-web-r5", "synergy-v3-web-snowball"]), ("transfer", ["ext-transfer-web-r5", "ext-transfer-web-snowball"])):
+    for split, dirs in (("eval", ["synergy-v3-web-r5", "synergy-v3-web-snowball", "synergy-v3-web-static"]), ("transfer", ["ext-transfer-web-r5", "ext-transfer-web-snowball", "ext-transfer-web-static"])):
         groups = defaultdict(list)
         for d in dirs:
             for r in load(d, budget=40):

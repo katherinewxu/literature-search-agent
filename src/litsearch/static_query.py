@@ -67,11 +67,12 @@ class StaticQueryAgent:
     def _call(self, system: str, user: str) -> dict[str, Any] | None:
         messages = [{"role": "system", "content": system}, {"role": "user", "content": user}]
         self.stats["turns"] += 1
-        response = ""
+        # API/transport errors propagate: the runner charges them and stops after three, so a
+        # misconfigured model fails loudly instead of producing a silent zero-recall run.
+        response = self.backend.complete(messages, temperature=self.temperature, seed=None)
         try:
-            response = self.backend.complete(messages, temperature=self.temperature, seed=None)
             parsed = _json(response)
-        except Exception as exc:  # a failed call costs nothing in the environment; skip it
+        except Exception as exc:  # an unparseable reply costs nothing in the environment; skip it
             self.stats["parse_failures"] += 1
             self.turns.append(TurnRecord(messages, response, None, f"{type(exc).__name__}: {exc}"))
             return None

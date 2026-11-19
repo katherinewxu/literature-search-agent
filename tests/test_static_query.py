@@ -55,6 +55,20 @@ class StaticQueryTests(unittest.TestCase):
         shown = {i for ev in run["trace"] for i in (ev.get("result_ids") or [])}
         self.assertTrue(set(run["predictions"]) >= shown - {None})
 
+    def test_api_errors_stop_the_episode(self):
+        class Broken:
+            model = "broken"
+
+            def complete(self, messages, *, temperature, seed):
+                raise RuntimeError("model API 400")
+
+        store = fixture_store()
+        review = store.review("fixture_depression")
+        spec = EpisodeSpec(review.id, review.question, review.eligibility_criteria, 10, "keyword")
+        run = run_episode(LiteratureSearchEnv(store, BM25Retriever(store.papers.values()), spec), StaticQueryAgent(Broken()))
+        self.assertEqual(len(run["agent_errors"]), 3)
+        self.assertEqual(run["predictions"], [])
+
 
 if __name__ == "__main__":
     unittest.main()
