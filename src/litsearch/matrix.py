@@ -38,6 +38,16 @@ def _make_agent(name: str, config: dict[str, Any], seed: int, backends: dict[str
 
             agent = ForcedExpansionAgent(agent, every=int(config["force_expand_every"]), name=config["label"])
         return agent
+    if name == "static_query":
+        from .static_query import StaticQueryAgent
+
+        return StaticQueryAgent(
+            backend=backends[config["label"]],
+            name=config["label"],
+            n_queries=int(config.get("n_queries", 8)),
+            screen=bool(config.get("screen", True)),
+            temperature=float(config.get("temperature", 0.0)),
+        )
     raise ValueError(f"unsupported matrix agent: {name}")
 
 
@@ -135,7 +145,7 @@ def run_matrix(
 
         web_store = WebStore(store, OpenAlexClient(config["openalex_cache"], delay_seconds=0.12))
     backends = {
-        agent["label"]: _backend(agent) for agent in config["agents"] if agent["name"] == "llm"
+        agent["label"]: _backend(agent) for agent in config["agents"] if agent["name"] in ("llm", "static_query")
     }
     output_dir = Path(config["output_dir"])
 

@@ -1,0 +1,51 @@
+{
+  "data_dir": "/scratch/users/kwx04/literature-search-agent/data/synergy-ext-transfer-v2",
+  "universe": "openalex",
+  "openalex_cache": "/scratch/users/kwx04/literature-search-agent/cache/openalex-web",
+  "index_scope": "pool",
+  "seed": 329,
+  "split": "transfer",
+  "budgets": [
+    40
+  ],
+  "output_dir": "/scratch/users/kwx04/literature-search-agent/runs/ext-transfer-web-trained",
+  "agents": [
+    {
+      "name": "llm",
+      "label": "qwen3-1.7b-sft",
+      "model": "qwen3-1.7b-sft",
+      "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+      "extra_body": {
+        "chat_template_kwargs": {
+          "enable_thinking": false
+        }
+      },
+      "temperature": 0.0,
+      "modes": [
+        "hybrid"
+      ],
+      "budgets": [
+        40
+      ]
+    },
+    {
+      "name": "llm",
+      "label": "qwen3-1.7b-grpo",
+      "model": "qwen3-1.7b-grpo",
+      "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+      "extra_body": {
+        "chat_template_kwargs": {
+          "enable_thinking": false
+        }
+      },
+      "temperature": 0.0,
+      "modes": [
+        "hybrid"
+      ],
+      "budgets": [
+        40
+      ]
+    }
+  ],
+  "_note": "Trained Qwen3-1.7B (SFT and GRPO v1, seed 1) on live OpenAlex, hybrid B=40, original environment. Local vLLM, no API cost."
+}
