@@ -1,0 +1,79 @@
+{
+  "data_dir": "/scratch/users/kwx04/literature-search-agent/data/synergy-v3",
+  "index_scope": "pool",
+  "seed": 329,
+  "budgets": [
+    40
+  ],
+  "reviews": [
+    "Appenzeller-Herzog_2019",
+    "Bos_2018",
+    "Brouwer_2019",
+    "Donners_2021",
+    "Hall_2011",
+    "Leenaars_2019",
+    "Meijboom_2021",
+    "Muthu_2020"
+  ],
+  "output_dir": "/scratch/users/kwx04/literature-search-agent/runs/synergy-v3-static",
+  "agents": [
+    {
+      "model": "anthropic/claude-haiku-5.5",
+      "price_per_mtok": [
+        0.1,
+        0.5
+      ],
+      "temperature": 0.0,
+      "base_url": "https://openrouter.ai/api/v1",
+      "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+      "spend_ledger": "/scratch/users/kwx04/literature-search-agent/spend/openrouter.jsonl",
+      "spend_cap_usd": 60.0,
+      "max_tokens": 1500,
+      "extra_body": {
+        "reasoning": {
+          "enabled": false
+        }
+      },
+      "name": "static_query",
+      "label": "haiku-5.5-static",
+      "screen": true,
+      "n_queries": 8,
+      "modes": [
+        "keyword"
+      ],
+      "budgets": [
+        20,
+        40
+      ]
+    },
+    {
+      "model": "anthropic/claude-haiku-5.5",
+      "price_per_mtok": [
+        0.1,
+        0.5
+      ],
+      "temperature": 0.0,
+      "base_url": "https://openrouter.ai/api/v1",
+      "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+      "spend_ledger": "/scratch/users/kwx04/literature-search-agent/spend/openrouter.jsonl",
+      "spend_cap_usd": 60.0,
+      "max_tokens": 1500,
+      "extra_body": {
+        "reasoning": {
+          "enabled": false
+        }
+      },
+      "name": "static_query",
+      "label": "haiku-5.5-static-all",
+      "screen": false,
+      "n_queries": 8,
+      "modes": [
+        "keyword"
+      ],
+      "budgets": [
+        40
+      ]
+    }
+  ],
+  "_note": "No-loop baseline on the closed graph (same as configs/web/*_static.json without the live web): Haiku writes 8 queries once, run round-robin, title screening or include-all."
+}
