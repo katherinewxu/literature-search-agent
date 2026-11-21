@@ -45,3 +45,19 @@ papers (eval 106 vs 28); the agent leaves about half its budget unspent and scre
 not recall. Include-all ceiling of the static queries: .364 eval / .196 transfer, so title
 screening loses little. No-loop Haiku also costs less ($0.004 vs $0.007 per episode).
 Sonnet hybrid agent (.324 eval) is still below no-loop Haiku (.368) on recall.
+
+**Update 2026-11-21: P1 on all 24 transfer reviews:** agent - no-loop = -.083 [-.116, -.054], 0/21,
+p<.001. The first Sonnet no-loop runs were invalid: they hit three `Stale file handle` errors on
+node rye-01 and stopped after about 3 actions. They were deleted and are being rerun.
+
+**Closed graph (exploratory, `scripts/closed_static_compare.py`; diff = no-loop - agent, Haiku B=40):**
+
+| split | recall | precision | F1 | included | budget spent (agent / no-loop) |
+|---|---|---|---|---|---|
+| transfer (24) | +.112 [+.076, +.149], 22/2 | -.144, 0/24 | **-.081 [-.130, -.039], 3/21** | 88 vs 166 | 30.0 / 40 |
+| eval (8) | +.025 [-.023, +.075] | -.101, 0/8 | -.100, 0/8 | 75 vs 131 | 32.2 / 40 |
+
+The same pattern holds on both graphs: the loop trades recall for precision and stops early. On
+the closed graph that trade *wins* on F1 (transfer .390 vs .309); on the live web F1 is equal.
+Revised reading: the loop's value is a precision/stopping policy, not coverage. The bigger the
+candidate space (live web), the more the agent's early stopping costs it.
