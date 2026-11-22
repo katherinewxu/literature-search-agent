@@ -19,15 +19,15 @@ CI: bootstrap over reviews; up/down: reviews where B beats / trails A; p: exact 
 | eval: haiku citation - snowball citation, B=40 | 8 | +0.096 | [-0.002, +0.231] | 3/1 | 0.625 |
 | transfer: haiku hybrid - snowball hybrid, B=40 | 24 | +0.087 | [+0.061, +0.114] | 22/0 | 0.000 |
 | transfer: haiku hybrid - OpenAlex search, B=40 | 24 | +0.080 | [+0.056, +0.105] | 22/0 | 0.000 |
-| P1 transfer: haiku hybrid agent - haiku no-loop (static queries), B=40 | 21 | -0.086 | [-0.121, -0.055] | 0/18 | 0.000 |
-| transfer: haiku hybrid agent - haiku no-loop, B=20 | 22 | -0.057 | [-0.084, -0.031] | 3/17 | 0.003 |
-| transfer: haiku no-loop screened - include-all, B=40 | 21 | -0.020 | [-0.032, -0.010] | 0/13 | 0.000 |
-| eval: haiku hybrid agent - haiku no-loop, B=40 | 8 | -0.198 | [-0.310, -0.103] | 0/8 | 0.008 |
-| eval: sonnet hybrid agent - sonnet no-loop, B=40 | 8 | +0.324 | [+0.193, +0.477] | 8/0 | 0.008 |
-| transfer: trained 1.7B (GRPO) - haiku hybrid, B=40 | 0 | - | - | - | - |
-| transfer: trained 1.7B (GRPO) - SFT, B=40 | 0 | - | - | - | - |
-| transfer: trained 1.7B (GRPO) - haiku no-loop, B=40 | 0 | - | - | - | - |
-| eval: trained 1.7B (GRPO) - haiku hybrid, B=40 | 0 | - | - | - | - |
+| P1 transfer: haiku hybrid agent - haiku no-loop (static queries), B=40 | 24 | -0.083 | [-0.116, -0.054] | 0/21 | 0.000 |
+| transfer: haiku hybrid agent - haiku no-loop, B=20 | 24 | -0.062 | [-0.092, -0.036] | 3/19 | 0.001 |
+| transfer: haiku no-loop screened - include-all, B=40 | 24 | -0.024 | [-0.039, -0.012] | 0/16 | 0.000 |
+| eval: haiku hybrid agent - haiku no-loop, B=40 | 8 | -0.198 | [-0.309, -0.100] | 0/8 | 0.008 |
+| eval: sonnet hybrid agent - sonnet no-loop, B=40 | 8 | -0.027 | [-0.090, +0.049] | 2/6 | 0.289 |
+| transfer: trained 1.7B (GRPO) - haiku hybrid, B=40 | 24 | -0.001 | [-0.029, +0.028] | 9/10 | 1.000 |
+| transfer: trained 1.7B (GRPO) - SFT, B=40 | 24 | +0.009 | [-0.005, +0.022] | 11/6 | 0.332 |
+| transfer: trained 1.7B (GRPO) - haiku no-loop, B=40 | 24 | -0.084 | [-0.110, -0.057] | 2/21 | 0.000 |
+| eval: trained 1.7B (GRPO) - haiku hybrid, B=40 | 8 | -0.088 | [-0.164, -0.015] | 3/5 | 0.727 |
 
 Mean recall per web system (original environment unless noted):
 
@@ -60,7 +60,9 @@ Mean recall per web system (original environment unless noted):
 | eval | haiku-5.5-static | keyword | 20 | 8 | 0.331 |
 | eval | haiku-5.5-static | keyword | 40 | 8 | 0.368 |
 | eval | haiku-5.5-static-all | keyword | 40 | 8 | 0.364 |
-| eval | sonnet-5.5-static | keyword | 40 | 8 | 0.000 |
+| eval | sonnet-5.5-static | keyword | 40 | 8 | 0.351 |
+| eval | qwen3-1.7b-grpo | hybrid | 40 | 8 | 0.083 |
+| eval | qwen3-1.7b-sft | hybrid | 40 | 8 | 0.099 |
 | transfer | haiku-5.5 | hybrid | 20 | 24 | 0.084 |
 | transfer | haiku-5.5 | hybrid | 40 | 24 | 0.098 |
 | transfer | openalex-search | keyword | 20 | 24 | 0.018 |
@@ -73,9 +75,11 @@ Mean recall per web system (original environment unless noted):
 | transfer | haiku-5.5 (v2 env) | citation | 40 | 24 | 0.037 |
 | transfer | haiku-5.5 (v2 env) | hybrid | 20 | 24 | 0.110 |
 | transfer | haiku-5.5 (v2 env) | hybrid | 40 | 24 | 0.134 |
-| transfer | haiku-5.5-static | keyword | 20 | 22 | 0.142 |
-| transfer | haiku-5.5-static | keyword | 40 | 21 | 0.176 |
-| transfer | haiku-5.5-static-all | keyword | 40 | 21 | 0.196 |
+| transfer | haiku-5.5-static | keyword | 20 | 24 | 0.146 |
+| transfer | haiku-5.5-static | keyword | 40 | 24 | 0.181 |
+| transfer | haiku-5.5-static-all | keyword | 40 | 24 | 0.205 |
+| transfer | qwen3-1.7b-grpo | hybrid | 40 | 24 | 0.097 |
+| transfer | qwen3-1.7b-sft | hybrid | 40 | 24 | 0.088 |
 
 ## 2. Judge sensitivity (Rogan-Gladen eligible share of never-screened records)
 
@@ -89,7 +93,7 @@ If specificity on never-screened records differs from the screened-excluded esti
 | 0.86 | 0.19 | 0.26 | 0.32 | 0.37 | 0.42 | 0.45 |
 | 0.95 | 0.16 | 0.22 | 0.28 | 0.33 | 0.37 | 0.41 |
 
-**gpt-5.6-luna**: measured sensitivity 0.87, specificity 0.72, unscreened yes-rate 0.45; eligible share 0.29, bootstrap 95% CI [0.22, 0.36] (calibration sampling only).
+**gpt-5.6-luna**: measured sensitivity 0.87, specificity 0.72, unscreened yes-rate 0.45; eligible share 0.29, bootstrap 95% CI [0.22, 0.35] (calibration sampling only).
 
 If specificity on never-screened records differs from the screened-excluded estimate:
 
@@ -116,10 +120,10 @@ Dollars are recovered from the response cache; 'matched' is the share of turns w
 | eval | snowball-tuned | hybrid | 8 | 0.0 | 0.000 | 0.1 | 0.000 | 2 | 1.00 |
 | eval | sonnet-5.5 | citation | 8 | 9.0 | 0.058 | 3.5 | 0.017 | 25 | 1.00 |
 | eval | sonnet-5.5 | hybrid | 8 | 36.5 | 0.234 | 10.5 | 0.022 | 99 | 1.00 |
-| eval | sonnet-5.5-static | keyword | 8 | 14.2 | 0.000 | 0.0 | - | 2 | 0.00 |
+| eval | sonnet-5.5-static | keyword | 8 | 38.2 | 0.145 | 11.5 | 0.013 | 69 | 1.00 |
 | transfer | haiku-5.5 | hybrid | 24 | 25.0 | 0.007 | 9.0 | 0.001 | 51 | 1.00 |
-| transfer | haiku-5.5-static | keyword | 21 | 41.0 | 0.004 | 9.5 | 0.000 | 38 | 1.00 |
-| transfer | haiku-5.5-static-all | keyword | 21 | 1.0 | 0.000 | 10.8 | 0.000 | 17 | 1.00 |
+| transfer | haiku-5.5-static | keyword | 24 | 41.0 | 0.004 | 13.4 | 0.000 | 37 | 1.00 |
+| transfer | haiku-5.5-static-all | keyword | 24 | 1.0 | 0.000 | 14.9 | 0.000 | 17 | 1.00 |
 | transfer | openalex-search | keyword | 24 | 0.0 | 0.000 | 0.7 | 0.000 | 1 | 1.00 |
 | transfer | snowball-tuned | citation | 24 | 0.0 | 0.000 | 0.2 | 0.000 | 3 | 1.00 |
 | transfer | snowball-tuned | hybrid | 24 | 0.0 | 0.000 | 0.3 | 0.000 | 2 | 1.00 |

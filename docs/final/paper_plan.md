@@ -61,3 +61,26 @@ The same pattern holds on both graphs: the loop trades recall for precision and 
 the closed graph that trade *wins* on F1 (transfer .390 vs .309); on the live web F1 is equal.
 Revised reading: the loop's value is a precision/stopping policy, not coverage. The bigger the
 candidate space (live web), the more the agent's early stopping costs it.
+
+## Final primary results (2026-11-22; `analysis/webfp/primary_tests.md`, `scripts/primary_tests.py`)
+Recall at B=40, 24 held-out transfer reviews, paired; exact sign test, Holm over P1-P4.
+
+| id | comparison (B - A) | A | B | diff [95% CI] | up/down | Holm p |
+|---|---|---|---|---|---|---|
+| P1 | live web: Haiku agent loop - no-loop Haiku query list | .181 | .098 | -.083 [-.115, -.054] | 0/21 | <.001 |
+| P2 | closed: trained Qwen3-1.7B - prompted Qwen3-32B | .351 | .483 | +.133 [+.078, +.193] | 18/3 | .005 |
+| P3 | closed: Haiku agent - BM25 | .474 | .477 | +.003 [-.082, +.080] | 14/10 | .54 |
+| P4 | live web: v2 env - original, Haiku agent | .098 | .134 | +.037 [+.007, +.070] | 13/7 | .53 |
+
+P1 and P2 survive correction. P3 is a null: the Haiku agent does not beat BM25 on recall in the
+closed graph. P4's bootstrap CI excludes 0, but the sign test does not survive correction, so
+report it as suggestive only.
+
+Exploratory, completed 2026-11-22:
+- Sonnet, eval B=40: agent .324 vs no-loop .351, diff -.027 [-.090, +.049], 2/6. Same direction
+  as Haiku but not significant. Sonnet no-loop costs $0.145 per episode.
+- Trained Qwen3-1.7B (GRPO) on the live web, transfer B=40: .097, which ties the Haiku agent (.098;
+  -.001 [-.029, +.028], 9/10) without any web training. GRPO vs SFT: +.009 [-.005, +.022].
+  On eval it is below Haiku (-.088 [-.164, -.015], 3/5). It is below the no-loop baseline
+  (-.084, 2/21).
+- OpenRouter spend is $60.14 (the cap was raised to $61 for the last two Sonnet runs).
