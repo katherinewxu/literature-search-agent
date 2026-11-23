@@ -23,7 +23,7 @@ for d, split in DIRS.items():
             reviews[split].add(ep["review_id"])
             fh.write(json.dumps({"split": split, "review_id": ep["review_id"], "agent": r["agent"], "mode": ep["mode"],
                                  "budget": ep["budget"], "repeat": r["matrix"].get("repeat", 0), "env": "v2" if d.endswith("v2") else "original",
-                                 "predictions": r["predictions"], "seed_ids": r.get("seed_ids") or [],
+                                 "predictions": r["predictions"], "include_order": [str((e.get("action") or {}).get("paper_id")) for e in r["trace"] if str((e.get("action") or {}).get("kind", "")).endswith(("include", "INCLUDE")) and not str((e.get("action") or {}).get("kind", "")).endswith(("exclude", "EXCLUDE"))], "seed_ids": r.get("seed_ids") or [],
                                  "steps": [[str((e.get("action") or {}).get("kind", "")), e.get("charged_cost", 0)] for e in r["trace"]],
                                  "runtime_seconds": r.get("runtime_seconds")}, sort_keys=True) + "\n")
 for split, data in DATA.items():
