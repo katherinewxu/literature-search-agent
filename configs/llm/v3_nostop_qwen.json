@@ -1,0 +1,57 @@
+{
+  "data_dir": "/scratch/users/kwx04/literature-search-agent/data/synergy-v3",
+  "reviews": [
+    "Appenzeller-Herzog_2019",
+    "Bos_2018",
+    "Brouwer_2019",
+    "Donners_2021",
+    "Hall_2011",
+    "Leenaars_2019",
+    "Meijboom_2021",
+    "Muthu_2020"
+  ],
+  "index_scope": "pool",
+  "seed": 329,
+  "budgets": [
+    20,
+    40
+  ],
+  "output_dir": "/scratch/users/kwx04/literature-search-agent/runs/synergy-v3-nostop-qwen",
+  "agents": [
+    {
+      "name": "llm",
+      "label": "qwen3-1.7b-grpo-nostop",
+      "model": "qwen3-1.7b-grpo",
+      "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+      "extra_body": {
+        "chat_template_kwargs": {
+          "enable_thinking": false
+        }
+      },
+      "temperature": 0.0,
+      "modes": [
+        "hybrid"
+      ],
+      "no_stop": true,
+      "max_refusals": 2
+    },
+    {
+      "name": "static_query",
+      "label": "qwen3-1.7b-grpo-static",
+      "model": "qwen3-1.7b-grpo",
+      "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+      "extra_body": {
+        "chat_template_kwargs": {
+          "enable_thinking": false
+        }
+      },
+      "temperature": 0.0,
+      "screen": true,
+      "n_queries": 8,
+      "modes": [
+        "keyword"
+      ]
+    }
+  ],
+  "_note": "Stopping ablation (docs/final/paper_plan.md): agent with early STOP rejected (NoStopAgent, max_refusals=2), plus the no-loop baseline, for the trained Qwen3-1.7B (GRPO) served by vLLM."
+}

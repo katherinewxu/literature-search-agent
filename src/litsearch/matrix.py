@@ -37,6 +37,10 @@ def _make_agent(name: str, config: dict[str, Any], seed: int, backends: dict[str
             from .forced import ForcedExpansionAgent
 
             agent = ForcedExpansionAgent(agent, every=int(config["force_expand_every"]), name=config["label"])
+        if config.get("no_stop"):
+            from .nostop import NoStopAgent
+
+            agent = NoStopAgent(agent, max_refusals=int(config.get("max_refusals", 2)), name=config["label"])
         return agent
     if name == "static_query":
         from .static_query import StaticQueryAgent
