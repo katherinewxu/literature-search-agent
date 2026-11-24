@@ -84,3 +84,30 @@ Exploratory, completed 2026-11-22:
   On eval it is below Haiku (-.088 [-.164, -.015], 3/5). It is below the no-loop baseline
   (-.084, 2/21).
 - OpenRouter spend is $60.14 (the cap was raised to $61 for the last two Sonnet runs).
+
+## Mechanism (2026-11-23): equal effort + stopping ablation (`analysis/webfp/equal_effort.md`, `stopping_ablation.md`)
+**Equal effort:** no-loop truncated to the agent's own number of included papers (per review) vs agent:
+live web transfer -.001 [-.026, +.022] (11/9); eval Haiku +.024 (4/2); eval Sonnet -.051 (2/5);
+closed transfer -.056 [-.076, -.037] (2/20); closed eval -.095 (0/7). Per included paper, the agent is
+as good as (web) or better than (closed) the fixed query list. The recall gap is about how many
+papers each system includes, not about which queries it picks.
+
+**Stopping ablation (closed graph, Haiku, B=40, transfer 24):** rejecting early STOP (NoStopAgent)
+
+| arm | recall | precision | F1 | included | spent |
+|---|---|---|---|---|---|
+| agent | .477 | .390 | .390 | 88 | 30.0 |
+| agent, no early stop | .527 | .353 | .386 | 106 | 39.8 |
+| no-loop | .589 | .246 | .309 | 166 | 40.0 |
+
+- No-stop minus agent: recall +.051 [+.027, +.079], 17/0, with F1 unchanged (-.004).
+- No-stop minus no-loop: recall -.062 (3/19), but **F1 +.077 [+.042, +.120] (21/3)**.
+- Decomposition of the .112 recall gap: about .05 from early stopping and about .06 from strict
+  screening (fewer inclusions).
+- On eval at B=20, stopping explains nearly the whole gap (no-stop vs no-loop -.017, 4/3).
+- Models comply: about 2.5 stops are rejected per episode and the stop is honoured early in only
+  about 0.2 episodes.
+- The no-stop agent is a free improvement over the agent (more recall, same F1) and beats the
+  no-loop baseline on F1.
+- Pending: the same ablation for trained Qwen3-1.7B (GPU queue) and for Haiku on the live web
+  (jobs 2017375/6).
