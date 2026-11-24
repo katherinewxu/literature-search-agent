@@ -51,6 +51,7 @@ def _make_agent(name: str, config: dict[str, Any], seed: int, backends: dict[str
             n_queries=int(config.get("n_queries", 8)),
             screen=bool(config.get("screen", True)),
             temperature=float(config.get("temperature", 0.0)),
+            seed=seed if float(config.get("temperature", 0.0)) > 0 else None,
         )
     raise ValueError(f"unsupported matrix agent: {name}")
 

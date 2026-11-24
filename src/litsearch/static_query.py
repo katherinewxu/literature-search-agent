@@ -57,6 +57,7 @@ class StaticQueryAgent:
     n_queries: int = 8
     screen: bool = True
     temperature: float = 0.0
+    seed: int | None = None  # set when temperature > 0 so repeats are distinct samples (and cache entries)
     turns: list[TurnRecord] = field(default_factory=list, init=False)
     stats: dict[str, int] = field(default_factory=lambda: {"turns": 0, "parse_failures": 0, "queries": 0}, init=False)
     _queries: list[str] | None = field(default=None, init=False)
@@ -69,7 +70,7 @@ class StaticQueryAgent:
         self.stats["turns"] += 1
         # API/transport errors propagate: the runner charges them and stops after three, so a
         # misconfigured model fails loudly instead of producing a silent zero-recall run.
-        response = self.backend.complete(messages, temperature=self.temperature, seed=None)
+        response = self.backend.complete(messages, temperature=self.temperature, seed=self.seed)
         try:
             parsed = _json(response)
         except Exception as exc:  # an unparseable reply costs nothing in the environment; skip it
@@ -119,5 +120,5 @@ class StaticQueryAgent:
         return Action(ActionKind.STOP)
 
     def summary(self) -> dict[str, Any]:
-        return {"backend_model": self.backend.model, "temperature": self.temperature,
+        return {"backend_model": self.backend.model, "temperature": self.temperature, "seed": self.seed,
                 "n_queries": self.n_queries, "screen": self.screen, "queries": self._queries, **self.stats}

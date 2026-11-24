@@ -1,0 +1,154 @@
+{
+  "data_dir": "/scratch/users/kwx04/literature-search-agent/data/synergy-ext-transfer-v2",
+  "split": "transfer",
+  "index_scope": "pool",
+  "seed": 329,
+  "budgets": [
+    40
+  ],
+  "output_dir": "/scratch/users/kwx04/literature-search-agent/runs/ext-transfer-ablation",
+  "agents": [
+    {
+      "name": "llm",
+      "label": "haiku-5.5-t07",
+      "model": "anthropic/claude-haiku-5.5",
+      "price_per_mtok": [
+        0.1,
+        0.5
+      ],
+      "temperature": 0.7,
+      "base_url": "https://openrouter.ai/api/v1",
+      "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+      "spend_ledger": "/scratch/users/kwx04/literature-search-agent/spend/openrouter.jsonl",
+      "spend_cap_usd": 63.0,
+      "max_tokens": 1500,
+      "modes": [
+        "hybrid"
+      ],
+      "extra_body": {
+        "reasoning": {
+          "enabled": false
+        }
+      },
+      "repeats": 3,
+      "budgets": [
+        40
+      ]
+    },
+    {
+      "name": "llm",
+      "label": "haiku-5.5-nostop-t07",
+      "model": "anthropic/claude-haiku-5.5",
+      "price_per_mtok": [
+        0.1,
+        0.5
+      ],
+      "temperature": 0.7,
+      "base_url": "https://openrouter.ai/api/v1",
+      "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+      "spend_ledger": "/scratch/users/kwx04/literature-search-agent/spend/openrouter.jsonl",
+      "spend_cap_usd": 63.0,
+      "max_tokens": 1500,
+      "modes": [
+        "hybrid"
+      ],
+      "extra_body": {
+        "reasoning": {
+          "enabled": false
+        }
+      },
+      "repeats": 3,
+      "budgets": [
+        40
+      ],
+      "no_stop": true,
+      "max_refusals": 2
+    },
+    {
+      "name": "llm",
+      "label": "haiku-5.5-prompt-t07",
+      "model": "anthropic/claude-haiku-5.5",
+      "price_per_mtok": [
+        0.1,
+        0.5
+      ],
+      "temperature": 0.7,
+      "base_url": "https://openrouter.ai/api/v1",
+      "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+      "spend_ledger": "/scratch/users/kwx04/literature-search-agent/spend/openrouter.jsonl",
+      "spend_cap_usd": 63.0,
+      "max_tokens": 1500,
+      "modes": [
+        "hybrid"
+      ],
+      "extra_body": {
+        "reasoning": {
+          "enabled": false
+        }
+      },
+      "repeats": 3,
+      "budgets": [
+        40
+      ],
+      "system_suffix": "\n\nBUDGET RULE: you must use your full budget. Do not choose stop while any budget remains; if results dry up, try new queries (synonyms, populations, interventions, outcomes, study designs) or expand the citations of included papers."
+    },
+    {
+      "model": "anthropic/claude-haiku-5.5",
+      "price_per_mtok": [
+        0.1,
+        0.5
+      ],
+      "temperature": 0.7,
+      "base_url": "https://openrouter.ai/api/v1",
+      "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+      "spend_ledger": "/scratch/users/kwx04/literature-search-agent/spend/openrouter.jsonl",
+      "spend_cap_usd": 63.0,
+      "max_tokens": 1500,
+      "extra_body": {
+        "reasoning": {
+          "enabled": false
+        }
+      },
+      "name": "static_query",
+      "label": "haiku-5.5-static-t07",
+      "screen": true,
+      "n_queries": 8,
+      "modes": [
+        "keyword"
+      ],
+      "budgets": [
+        40
+      ],
+      "repeats": 3
+    },
+    {
+      "name": "llm",
+      "label": "haiku-5.5-prompt",
+      "model": "anthropic/claude-haiku-5.5",
+      "price_per_mtok": [
+        0.1,
+        0.5
+      ],
+      "temperature": 0.0,
+      "base_url": "https://openrouter.ai/api/v1",
+      "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+      "spend_ledger": "/scratch/users/kwx04/literature-search-agent/spend/openrouter.jsonl",
+      "spend_cap_usd": 63.0,
+      "max_tokens": 1500,
+      "modes": [
+        "hybrid"
+      ],
+      "extra_body": {
+        "reasoning": {
+          "enabled": false
+        }
+      },
+      "repeats": 1,
+      "budgets": [
+        40
+      ],
+      "system_suffix": "\n\nBUDGET RULE: you must use your full budget. Do not choose stop while any budget remains; if results dry up, try new queries (synonyms, populations, interventions, outcomes, study designs) or expand the citations of included papers."
+    }
+  ],
+  "_note": "Stopping ablation robustness, closed graph, B=40: agent / no-stop / prompt-only ('use your full budget') / no-loop at T=0.7 x3 repeats, plus prompt-only at T=0."
+}

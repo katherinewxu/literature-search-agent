@@ -1,0 +1,114 @@
+{
+  "data_dir": "/scratch/users/kwx04/literature-search-agent/data/synergy-ext-transfer-v2",
+  "split": "transfer",
+  "index_scope": "pool",
+  "seed": 329,
+  "budgets": [
+    40
+  ],
+  "output_dir": "/scratch/users/kwx04/literature-search-agent/runs/ext-transfer-ablation-qwen",
+  "agents": [
+    {
+      "name": "llm",
+      "label": "qwen3-1.7b-grpo-t07",
+      "model": "qwen3-1.7b-grpo",
+      "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+      "extra_body": {
+        "chat_template_kwargs": {
+          "enable_thinking": false
+        }
+      },
+      "temperature": 0.7,
+      "modes": [
+        "hybrid"
+      ],
+      "repeats": 3,
+      "budgets": [
+        40
+      ]
+    },
+    {
+      "name": "llm",
+      "label": "qwen3-1.7b-grpo-nostop-t07",
+      "model": "qwen3-1.7b-grpo",
+      "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+      "extra_body": {
+        "chat_template_kwargs": {
+          "enable_thinking": false
+        }
+      },
+      "temperature": 0.7,
+      "modes": [
+        "hybrid"
+      ],
+      "repeats": 3,
+      "budgets": [
+        40
+      ],
+      "no_stop": true,
+      "max_refusals": 2
+    },
+    {
+      "name": "llm",
+      "label": "qwen3-1.7b-grpo-prompt-t07",
+      "model": "qwen3-1.7b-grpo",
+      "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+      "extra_body": {
+        "chat_template_kwargs": {
+          "enable_thinking": false
+        }
+      },
+      "temperature": 0.7,
+      "modes": [
+        "hybrid"
+      ],
+      "repeats": 3,
+      "budgets": [
+        40
+      ],
+      "system_suffix": "\n\nBUDGET RULE: you must use your full budget. Do not choose stop while any budget remains; if results dry up, try new queries (synonyms, populations, interventions, outcomes, study designs) or expand the citations of included papers."
+    },
+    {
+      "name": "static_query",
+      "model": "qwen3-1.7b-grpo",
+      "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+      "extra_body": {
+        "chat_template_kwargs": {
+          "enable_thinking": false
+        }
+      },
+      "screen": true,
+      "n_queries": 8,
+      "label": "qwen3-1.7b-grpo-static-t07",
+      "temperature": 0.7,
+      "repeats": 3,
+      "budgets": [
+        40
+      ],
+      "modes": [
+        "keyword"
+      ]
+    },
+    {
+      "name": "llm",
+      "label": "qwen3-1.7b-grpo-prompt",
+      "model": "qwen3-1.7b-grpo",
+      "cache_dir": "/scratch/users/kwx04/literature-search-agent/cache/llm",
+      "extra_body": {
+        "chat_template_kwargs": {
+          "enable_thinking": false
+        }
+      },
+      "temperature": 0.0,
+      "modes": [
+        "hybrid"
+      ],
+      "repeats": 1,
+      "budgets": [
+        40
+      ],
+      "system_suffix": "\n\nBUDGET RULE: you must use your full budget. Do not choose stop while any budget remains; if results dry up, try new queries (synonyms, populations, interventions, outcomes, study designs) or expand the citations of included papers."
+    }
+  ],
+  "_note": "Stopping ablation robustness, closed graph, B=40: agent / no-stop / prompt-only ('use your full budget') / no-loop at T=0.7 x3 repeats, plus prompt-only at T=0."
+}

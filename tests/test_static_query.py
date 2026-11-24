@@ -55,6 +55,21 @@ class StaticQueryTests(unittest.TestCase):
         shown = {i for ev in run["trace"] for i in (ev.get("result_ids") or [])}
         self.assertTrue(set(run["predictions"]) >= shown - {None})
 
+    def test_seed_passed_only_when_sampling(self):
+        seen = []
+
+        class Rec(Scripted):
+            def complete(self, messages, *, temperature, seed):
+                seen.append(seed)
+                return super().complete(messages, temperature=temperature, seed=seed)
+
+        from litsearch.matrix import _make_agent
+        cfg = {"name": "static_query", "label": "s", "temperature": 0.7}
+        agent = _make_agent("static_query", cfg, 331, {"s": Rec()})
+        self.assertEqual(agent.seed, 331)
+        agent = _make_agent("static_query", {**cfg, "temperature": 0.0}, 331, {"s": Rec()})
+        self.assertIsNone(agent.seed)
+
     def test_api_errors_stop_the_episode(self):
         class Broken:
             model = "broken"
