@@ -111,3 +111,21 @@ papers each system includes, not about which queries it picks.
   no-loop baseline on F1.
 - Pending: the same ablation for trained Qwen3-1.7B (GPU queue) and for Haiku on the live web
   (jobs 2017375/6).
+
+## Framing the Sonnet result (draft for Results/Discussion)
+Stopping explains Haiku's gap, not every model's. Sonnet already spends its budget on the live web
+(8% unspent at B=40 vs 47% for Haiku; `stop_analysis.md`). Even so, it only ties its own no-loop
+query list: .324 vs .351, diff -.027 [-.090, +.049], 2/6. At equal inclusion count it is no
+better either: the no-loop list truncated to Sonnet's count is -.051 [-.113, +.009] (2/5).
+Two separate claims follow:
+1. **Haiku:** the loop's recall deficit is a stopping and inclusion-threshold problem (no-stop
+   recovers about half of it at equal F1).
+2. **Both models:** once the budget is spent, adaptivity (choosing the next query from results)
+   gives no measurable recall gain over queries written up front. Sonnet's loop buys at most a
+   small per-paper precision edge.
+So the question for agent design is not "can the agent pick better queries?". It is "does the
+agent know when to stop, and how much should it include?". That is the stopping problem of
+technology-assisted review in a new form (Cormack & Grossman 2016; Callaghan & Müller-Hansen 2020).
+
+Caveat for the paper: Sonnet results are eval-only (n=8); there is no Sonnet stopping ablation,
+because Sonnet barely stops early, so the ablation would not be informative.
