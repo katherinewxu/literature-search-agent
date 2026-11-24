@@ -37,10 +37,10 @@ T0 = {  # T=0 references for the prompt-only arm: (dir, label)
 }
 
 
-def runs(d, label, budget=40):
+def runs(d, label, budget=40, mode="hybrid"):
     """review -> repeat -> metrics (also counts rejected stops)."""
     out = defaultdict(dict)
-    for p in sorted((RUNS / d).glob(f"*__{label}__*__b{budget}__r*.json")):
+    for p in sorted((RUNS / d).glob(f"*__{label}__{mode}__b{budget}__r*.json")):
         r = json.loads(p.read_text())
         if r["agent"] != label:
             continue
