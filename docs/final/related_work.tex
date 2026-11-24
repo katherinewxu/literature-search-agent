@@ -29,6 +29,21 @@ estimators and certified intervals \citep{li2020stop,lewis2021certifying}, and p
 assume a fixed collection and human labels. We estimate recall for an agent's open-ended search with an LLM
 screener, so the bound must also absorb the screener's error.
 
+\textbf{Stopping in search agents.}
+Technology-assisted review treats \emph{when to stop} as a problem separate from \emph{what to retrieve}
+\citep{cormack2016engineering,callaghan2020stopping,lewis2021certifying,stevenson2023pointprocess}, and
+interactive IR models searchers' stopping rules explicitly \citep{maxwell2015searching,pirolli1999foraging}.
+LLM search agents fold this decision into the policy: the model itself emits STOP. Agents have been reported
+to stop early or to plateau when given more tool calls \citep{yen2025lost,liu2025budgetaware}, and their
+stopping is decoupled from their own evidence judgments \citep{zhang2026judged}. Forcing a model to continue
+instead of terminating improves reasoning \citep[budget forcing;][]{muennighoff2025s1} and web agents
+\citep{shen2025thinking}. Separately, simple fixed pipelines often match agentic systems once cost is
+controlled \citep{xia2024agentless,kapoor2024agents}, and LLM-written Boolean queries trade recall for
+precision \citep{wang2025reassessing}. We bring these threads together for systematic-review search. We compare an
+adaptive agent with a fixed LLM query list at matched budget, separate the recall gap into stopping and
+inclusion, and test whether rejecting STOP (budget forcing applied to an agent) or prompting for full budget
+use closes it.
+
 \textbf{Incomplete relevance judgments.}
 Pooled test collections miss relevant documents \citep{zobel1998reliable}, motivating measures robust to
 unjudged documents \citep{buckley2004bpref,yilmaz2006infap,sakai2007bpref}; small pools also bias judgments
