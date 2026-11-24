@@ -10,7 +10,8 @@ ROOT = Path("/scratch/users/kwx04/literature-search-agent")
 DIRS = {"synergy-v3-web-r5": "eval", "synergy-v3-web-v2": "eval", "synergy-v3-web-snowball": "eval",
         "ext-transfer-web-r5": "transfer", "ext-transfer-web-v2": "transfer", "ext-transfer-web-citation-orig": "transfer",
         "ext-transfer-web-snowball": "transfer", "synergy-v3-web-static": "eval", "ext-transfer-web-static": "transfer",
-        "synergy-v3-web-trained": "eval", "ext-transfer-web-trained": "transfer"}
+        "synergy-v3-web-trained": "eval", "ext-transfer-web-trained": "transfer",
+        "synergy-v3-web-nostop": "eval", "ext-transfer-web-nostop": "transfer"}
 DATA = {"eval": "synergy-v3", "transfer": "synergy-ext-transfer-v2"}
 out = Path(sys.argv[1]); out.mkdir(parents=True, exist_ok=True)
 gold, reviews = {}, {s: set() for s in DATA}

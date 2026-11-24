@@ -21,6 +21,10 @@ SYSTEMS = {  # (split, model) -> {arm: (dir, agent, mode)}
     ("eval", "Qwen3-1.7B GRPO"): {"agent": ("synergy-v3-small-trained-r4", "qwen3-1.7b-grpo", "hybrid"),
                                   "no-stop": ("synergy-v3-nostop-qwen", "qwen3-1.7b-grpo-nostop", "hybrid"),
                                   "no-loop": ("synergy-v3-nostop-qwen", "qwen3-1.7b-grpo-static", "keyword")},
+    ("web transfer", "Haiku"): {"agent": ("ext-transfer-web-r5", "haiku-5.5", "hybrid"), "no-stop": ("ext-transfer-web-nostop", "haiku-5.5-nostop", "hybrid"),
+                                "no-loop": ("ext-transfer-web-static", "haiku-5.5-static", "keyword")},
+    ("web eval", "Haiku"): {"agent": ("synergy-v3-web-r5", "haiku-5.5", "hybrid"), "no-stop": ("synergy-v3-web-nostop", "haiku-5.5-nostop", "hybrid"),
+                            "no-loop": ("synergy-v3-web-static", "haiku-5.5-static", "keyword")},
 }
 METRICS = ("recall", "precision", "f1", "included_count", "charged_cost")
 
@@ -39,7 +43,7 @@ def diff_row(label, a, b, key):
 
 
 def main(out):
-    L = ["# Stopping ablation (closed graph)", ""]
+    L = ["# Stopping ablation (closed graph; web rows: live OpenAlex)", ""]
     for (split, model), arms in SYSTEMS.items():
         for budget in (20, 40):
             cells = {arm: cell(spec, budget) for arm, spec in arms.items()}
